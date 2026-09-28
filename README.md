@@ -38,7 +38,19 @@ AI-Interviewer/
 
 ## 🚀 Быстрый старт
 
-### 1. Установка зависимостей
+### Вариант 1: Docker (Рекомендуется)
+
+```bash
+# Windows
+scripts\docker-setup.bat
+
+# Linux/Mac
+chmod +x scripts/docker-setup.sh
+./scripts/docker-setup.sh
+```
+
+### Вариант 2: Локальная установка
+
 ```bash
 # Установить Ollama
 curl -fsSL https://ollama.com/install.sh | sh
@@ -49,15 +61,14 @@ ollama pull llama3.2:3b
 # Установить Python зависимости
 cd backend
 pip install -r requirements.txt
-```
 
-### 2. Запуск backend сервера
-```bash
-cd backend
+# Запуск
 python api/server.py
 ```
 
-### 3. Установка Chrome расширения
+Подробнее: [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md)
+
+### Установка Chrome расширения
 1. Открыть `chrome://extensions/`
 2. Включить "Режим разработчика"
 3. Нажать "Загрузить распакованное расширение"
