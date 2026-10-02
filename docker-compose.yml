@@ -8,6 +8,9 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - QWEN_MODEL=${QWEN_MODEL:-qwen3:4b}
+      - QWEN_TIMEOUT=${QWEN_TIMEOUT:-120}
       - WHISPER_MODEL=medium
       - WHISPER_DEVICE=cpu
       - WHISPER_COMPUTE_TYPE=int8
@@ -16,6 +19,15 @@ services:
       - whisper-cache:/root/.cache/huggingface
     restart: unless-stopped
 
+  # Download the model explicitly after startup (see docs/QWEN_SETUP.md).
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-cache:/root/.ollama
+    restart: unless-stopped
+
 volumes:
+  ollama-cache:
+    driver: local
   whisper-cache:
     driver: local

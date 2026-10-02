@@ -17,6 +17,9 @@ docker compose build
 echo.
 echo Запуск сервиса...
 docker compose up -d
+if not defined QWEN_MODEL set QWEN_MODEL=qwen3:4b
+docker compose exec ollama ollama pull %QWEN_MODEL%
+
 
 echo.
 echo Ожидание запуска Whisper (30 сек)...
