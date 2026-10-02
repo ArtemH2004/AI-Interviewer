@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import uvicorn
 import sys
 from pathlib import Path
@@ -10,6 +10,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from models.whisper_service import get_whisper_service
 from models.config import API_HOST, API_PORT
+from models.qwen_service import QwenService, QwenServiceError
 
 app = FastAPI(title="AI Interview Assistant API")
 
@@ -23,12 +24,20 @@ app.add_middleware(
 )
 
 class QuestionRequest(BaseModel):
-    text: str
-    context: str = ""
-    language: str = "ru"
+    text: str = Field(min_length=1, max_length=20000)
+    context: str = Field(default="", max_length=20000)
+    language: str = Field(default="ru", min_length=2, max_length=16, pattern=r"^[a-zA-Z-]+$")
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Question must not be blank")
+        return value.strip()
 
 # Инициализация сервисов при запуске
 whisper_service = None
+qwen_service = QwenService()
 
 @app.on_event("startup")
 async def startup_event():
@@ -76,11 +85,11 @@ async def transcribe_audio(audio: UploadFile = File(...)):
 
 @app.post("/api/generate-answer")
 async def generate_answer(request: QuestionRequest):
-    """
-    Генерация ответа на вопрос с помощью LLM
-    TODO: Будет реализовано другим разработчиком
-    """
-    raise HTTPException(status_code=501, detail="LLM service not implemented yet")
+    """Generate an interview answer using Qwen; audio stays with Whisper."""
+    try:
+        return await qwen_service.generate_answer(request.text, request.context, request.language)
+    except QwenServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 @app.get("/api/health")
 async def health_check():
@@ -92,7 +101,8 @@ async def health_check():
     return {
         "status": "healthy",
         "models": {
-            "whisper": whisper_status
+            "whisper": whisper_status,
+            "qwen": await qwen_service.health()
         }
     }
 

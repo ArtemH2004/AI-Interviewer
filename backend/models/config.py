@@ -12,3 +12,7 @@ WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")  # int8, float1
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
 
+# Qwen answer generation only; Whisper settings above stay independent.
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+QWEN_MODEL = os.getenv("QWEN_MODEL", "qwen3:4b")
+QWEN_TIMEOUT = float(os.getenv("QWEN_TIMEOUT", "120"))

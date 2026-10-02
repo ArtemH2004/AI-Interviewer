@@ -26,7 +26,7 @@ AI-Interviewer/
 
 ### Модели (бесплатные, локальные)
 - **Speech-to-Text:** Whisper (faster-whisper)
-- **Text Generation:** Llama 3.2 / Phi-3.5 (через Ollama)
+- **Text Generation:** Qwen 3 (qwen3:4b) (через Ollama)
 
 ### Backend
 - Python (FastAPI)
@@ -52,11 +52,11 @@ chmod +x scripts/docker-setup.sh
 ### Вариант 2: Локальная установка
 
 ```bash
-# Установить Ollama
-curl -fsSL https://ollama.com/install.sh | sh
+# Установить и запустить Ollama: https://ollama.com/download
+# Linux: curl -fsSL https://ollama.com/install.sh | sh
 
 # Загрузить модель
-ollama pull llama3.2:3b
+ollama pull qwen3:4b
 
 # Установить Python зависимости
 cd backend
@@ -66,7 +66,9 @@ pip install -r requirements.txt
 python api/server.py
 ```
 
-Подробнее: [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md)
+Qwen setup, exact commands, API examples, changes and rationale: [docs/QWEN_SETUP.md](docs/QWEN_SETUP.md).
+
+Подробнее о Whisper: [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md)
 
 ### Установка Chrome расширения
 1. Открыть `chrome://extensions/`
@@ -75,9 +77,9 @@ python api/server.py
 4. Выбрать папку `chrome-extension/`
 
 ## 📝 TODO
-- [ ] Настроить backend API
-- [ ] Интегрировать Whisper
-- [ ] Интегрировать Ollama
+- [x] Настроить backend API
+- [x] Интегрировать Whisper
+- [x] Интегрировать Ollama / Qwen
 - [ ] Создать UI расширения
 - [ ] Добавить захват аудио
 - [ ] Протестировать на реальных собеседованиях

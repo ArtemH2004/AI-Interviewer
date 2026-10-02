@@ -19,6 +19,8 @@ docker compose build
 echo ""
 echo "🚀 Запуск сервиса..."
 docker compose up -d
+docker compose exec ollama ollama pull "${QWEN_MODEL:-qwen3:4b}"
+
 
 echo ""
 echo "⏳ Ожидание запуска Whisper (30 сек)..."

@@ -25,8 +25,8 @@ cd backend
 python3 -m pip install -r requirements.txt
 
 # Загрузка модели Ollama
-echo "📥 Загрузка модели Llama 3.2 (это может занять несколько минут)..."
-ollama pull llama3.2:3b
+echo "📥 Загрузка модели Qwen (это может занять несколько минут)..."
+ollama pull "${QWEN_MODEL:-qwen3:4b}"
 
 echo ""
 echo "✨ Установка завершена!"

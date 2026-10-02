@@ -67,9 +67,11 @@
 - Локальное выполнение
 
 **LLM Service (Ollama)**
-- Модель: Llama 3.2 (3B) или Phi-3.5
+- Модель: Qwen 3 (qwen3:4b)
 - Генерация структурированных ответов
 - Контекстное понимание вопросов
+
+The flow below describes the intended audio workflow. Live capture in the extension is still a TODO; the popup currently submits typed or pasted questions to Qwen. Whisper transcription is available through the API.
 
 ## Поток данных
 
