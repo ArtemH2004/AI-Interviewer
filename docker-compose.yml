@@ -1,27 +1,29 @@
 services:
-  # Backend API с Whisper
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ai-interview-backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - QWEN_MODEL=${QWEN_MODEL:-qwen3:4b}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - QWEN_MODEL=${QWEN_MODEL:-qwen3:1.7b}
       - QWEN_TIMEOUT=${QWEN_TIMEOUT:-120}
-      - WHISPER_MODEL=medium
-      - WHISPER_DEVICE=cpu
-      - WHISPER_COMPUTE_TYPE=int8
+      - WHISPER_MODEL=${WHISPER_MODEL:-base}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
     volumes:
       - ./backend:/app
       - whisper-cache:/root/.cache/huggingface
+    depends_on:
+      - ollama
     restart: unless-stopped
 
-  # Download the model explicitly after startup (see docs/QWEN_SETUP.md).
   ollama:
     image: ollama/ollama:latest
+    environment:
+      - QWEN_MODEL=${QWEN_MODEL:-qwen3:1.7b}
     volumes:
       - ollama-cache:/root/.ollama
     restart: unless-stopped

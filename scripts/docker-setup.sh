@@ -19,12 +19,12 @@ docker compose build
 echo ""
 echo "🚀 Запуск сервиса..."
 docker compose up -d
-docker compose exec ollama ollama pull "${QWEN_MODEL:-qwen3:4b}"
+docker compose exec ollama sh -c 'ollama pull "$QWEN_MODEL"'
 
 
 echo ""
 echo "⏳ Ожидание запуска Whisper (30 сек)..."
-echo "   (Первый запуск может занять больше времени - Whisper скачивает модель ~1.5GB)"
+echo "   (Первый запуск может занять больше времени - Whisper скачивает модель ~145MB)"
 sleep 30
 
 echo ""

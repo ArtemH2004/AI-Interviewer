@@ -1,6 +1,6 @@
 # Qwen integration: setup and rationale
 
-Qwen generates answers from **text**. Whisper remains the speech-to-text model, with the existing `medium`, CPU and `int8` defaults. No Whisper service code or transcription settings were changed.
+Qwen generates answers from **text**. Whisper remains the speech-to-text model, with `base`, CPU and `int8` defaults.
 
 ## Local setup (recommended on macOS)
 
@@ -10,7 +10,7 @@ Run these commands from the repository root. Use Python 3.11, matching the Docke
 2. Download the answer model:
 
    ```bash
-   ollama pull qwen3:4b
+   ollama pull qwen3:1.7b
    ```
 
 3. Create an environment, install dependencies, and start the backend:
@@ -38,7 +38,7 @@ Run these commands from the repository root. Use Python 3.11, matching the Docke
      -d '{"text":"What is the difference between a list and a tuple in Python?","context":"Junior Python developer preparing for an interview.","language":"en"}'
    ```
 
-   Response: `{"success":true,"answer":"...","model":"qwen3:4b"}`. Actual wording depends on the model.
+   Response: `{"success":true,"answer":"...","model":"qwen3:1.7b"}`. Actual wording depends on the model.
 
 ## Docker setup
 
@@ -46,13 +46,13 @@ Run from the repository root:
 
 ```bash
 docker compose up -d --build
-docker compose exec ollama ollama pull qwen3:4b
+docker compose exec ollama ollama pull qwen3:1.7b
 docker compose logs -f backend
 ```
 
-Then use the same health and answer commands above. The backend connects to `http://ollama:11434` over Docker's internal network. Model downloads persist in `ollama-cache`; Whisper keeps its existing separate cache. Ollama does not need a host port. The setup scripts now also pull Qwen.
+Then use the same health and answer commands above. `/api/health` also returns `qwen_model`, the configured model tag. The backend connects to `http://ollama:11434` over Docker's internal network. Model downloads persist in `ollama-cache`; Whisper keeps its existing separate cache. Ollama does not need a host port. The setup scripts now also pull Qwen.
 
-On macOS, native Ollama is generally preferable for generation performance because the Linux Docker container does not use Apple Metal. To use host Ollama with a Docker backend, change the backend's `OLLAMA_BASE_URL` to `http://host.docker.internal:11434` in Compose and recreate the backend.
+On macOS, native Ollama is generally preferable for generation performance because the Linux Docker container does not use Apple Metal. The same applies to Windows without an NVIDIA GPU: native Ollama can use Intel/AMD GPUs through Vulkan (on by default in recent versions, `OLLAMA_VULKAN=1` in older ones; integrated Intel GPU support is still experimental), while Docker cannot. To use host Ollama with a Docker backend, set `OLLAMA_BASE_URL=http://host.docker.internal:11434` in the root `.env` and run `docker compose up -d backend`.
 
 ## Whisper to Qwen workflow
 
@@ -65,28 +65,30 @@ curl http://localhost:8000/api/transcribe \
 
 Send its returned `text` as the `text` field of `/api/generate-answer`, and its `language` as the answer language. The endpoints remain separate so transcription and generation can be retried independently. The API does not automatically generate an answer when audio is uploaded.
 
-The extension's live tab/microphone capture was already unfinished. The popup now offers an editable question field and an **Ответить с Qwen** button: type a question or paste Whisper's transcript to get a real answer. Recording controls stay disabled until audio capture is implemented. The popup requests Russian answers; API clients can pass `en` or another language code. Keep the popup open while generation runs. Missing icon assets referenced by the existing manifest may also need to be supplied before Chrome can load this project's extension.
+The Chrome extension's side panel chains both calls itself: it records the microphone and/or tab audio, sends it to `/api/transcribe`, then (with auto-answer enabled) sends the transcript and detected language to `/api/generate-answer`. In text mode, the question goes straight to Qwen. The answer language follows the extension setting (`auto` uses Whisper's detected language).
 
 ## Configuration
 
 | Environment variable | Default locally | Purpose |
 | --- | --- | --- |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server; Docker uses its service hostname |
-| `QWEN_MODEL` | `qwen3:4b` | Exact Ollama model tag for answer generation |
+| `QWEN_MODEL` | `qwen3:1.7b` | Exact Ollama model tag for answer generation |
 | `QWEN_TIMEOUT` | `120` | Request timeout in seconds, allowing cold model loading |
 
-For example, to use a larger Qwen model locally:
+In Docker, all of these can be overridden in the root `.env` file (Compose substitutes `${...}`).
+
+The default `qwen3:1.7b` (~1.4 GB) is chosen for low-end CPUs. For better answers, use a larger Qwen model, e.g. locally:
 
 ```bash
-ollama pull qwen3:8b
-QWEN_MODEL=qwen3:8b python backend/api/server.py
+ollama pull qwen3:4b
+QWEN_MODEL=qwen3:4b python backend/api/server.py
 ```
 
-For Docker, use the same tag for both the backend and model download:
+For Docker, set it in the root `.env` (both the backend and the `ollama` container read it), then:
 
 ```bash
-QWEN_MODEL=qwen3:8b docker compose up -d --build
-docker compose exec ollama ollama pull qwen3:8b
+docker compose up -d
+docker compose exec ollama sh -c 'ollama pull "$QWEN_MODEL"'
 ```
 
 Restart the backend after changing configuration. Local configuration reads process environment variables; it does not automatically load a `.env` file. Compose reads its root `.env` for `${...}` substitution. These settings do not change Whisper.

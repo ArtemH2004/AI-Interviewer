@@ -19,10 +19,10 @@ function StatusDot({ status, label }: { status: Status; label: string }) {
   );
 }
 
-const QWEN_HINT: Record<Health['models']['qwen'], string> = {
-  ready: 'Qwen готов',
-  model_missing: 'Модель Qwen не скачана: ollama pull qwen3:4b',
-  unavailable: 'Ollama недоступна',
+const QWEN_HINT: Record<Health['models']['qwen'], (model: string) => string> = {
+  ready: (model) => `Qwen готов (${model})`,
+  model_missing: (model) => `Модель Qwen не скачана: ollama pull ${model}`,
+  unavailable: () => 'Ollama недоступна',
 };
 
 const QWEN_STATUS: Record<Health['models']['qwen'], Status> = {
@@ -43,7 +43,7 @@ export function StatusPill({ health, offline }: Props) {
   return (
     <span
       className="chip gap-3"
-      title={`${whisperOk ? 'Whisper загружен' : 'Whisper не загружен'}\n${QWEN_HINT[health.models.qwen]}`}
+      title={`${whisperOk ? 'Whisper загружен' : 'Whisper не загружен'}\n${QWEN_HINT[health.models.qwen](health.qwen_model)}`}
     >
       <StatusDot status={whisperOk ? 'ok' : 'error'} label="Whisper" />
       <StatusDot status={QWEN_STATUS[health.models.qwen]} label="Qwen" />
