@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Доступ к микрофону</title>
+  </head>
+  <body>
+    <div class="wallpaper"><span></span><span></span><span></span></div>
+    <main class="flex min-h-screen items-center justify-center p-6">
+      <div class="card flex max-w-sm flex-col items-center gap-3 p-6 text-center">
+        <h1 class="text-headline font-semibold">Доступ к микрофону</h1>
+        <p id="message" class="text-body text-fg-muted">
+          Разрешите доступ к микрофону во всплывающем окне браузера.
+        </p>
+        <button id="retry" class="btn-primary btn-md mt-2 hidden">Попробовать снова</button>
+      </div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

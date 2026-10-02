@@ -9,14 +9,14 @@ AI-Interviewer/
 ├── backend/                  # Локальный сервер для обработки
 │   ├── api/                 # API endpoints
 │   └── models/              # Конфигурация и загрузка моделей
-├── chrome-extension/        # Chrome расширение
+├── frontend/                # Chrome расширение (React + Vite)
 │   ├── src/
-│   │   ├── popup/          # UI popup расширения
-│   │   ├── content/        # Content scripts (внедрение в страницы)
-│   │   └── background/     # Background service worker
-│   └── assets/
-│       ├── icons/          # Иконки расширения
-│       └── css/            # Стили
+│   │   ├── sidepanel/      # UI боковой панели (React)
+│   │   ├── permission/     # Страница запроса доступа к микрофону
+│   │   ├── background/     # Background service worker
+│   │   └── lib/            # API-клиент, запись звука, хранилище
+│   ├── public/             # manifest.json и иконки
+│   └── dist/               # Собранное расширение (генерируется)
 ├── docs/                    # Документация
 ├── scripts/                 # Скрипты для установки и настройки
 └── tests/                   # Тесты
@@ -33,8 +33,8 @@ AI-Interviewer/
 - Ollama для управления LLM
 
 ### Chrome Extension
-- JavaScript (Vanilla JS или React)
-- Chrome Extension Manifest V3
+- React 19 + TypeScript, Vite, Tailwind CSS v4 (стиль iOS liquid glass)
+- Chrome Extension Manifest V3, Side Panel API
 
 ## 🚀 Быстрый старт
 
@@ -71,15 +71,28 @@ Qwen setup, exact commands, API examples, changes and rationale: [docs/QWEN_SETU
 Подробнее о Whisper: [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md)
 
 ### Установка Chrome расширения
+```bash
+cd frontend
+npm install
+npm run build        # или npm run dev — пересборка при изменениях
+```
 1. Открыть `chrome://extensions/`
 2. Включить "Режим разработчика"
 3. Нажать "Загрузить распакованное расширение"
-4. Выбрать папку `chrome-extension/`
+4. Выбрать папку `frontend/dist/`
+5. Нажать на иконку расширения — откроется боковая панель
+
+Использование:
+- **Голос** — нажмите кнопку записи, задайте вопрос, нажмите ещё раз. Whisper распознает речь, Qwen ответит.
+  Источник: микрофон, звук текущей вкладки (Meet/Zoom в браузере) или оба. При первой записи с микрофона
+  откроется вкладка с запросом доступа.
+- **Текст** — введите вопрос и нажмите отправить (или Ctrl+Enter).
+- В настройках: адрес backend, язык ответа, автоответ после распознавания, контекст о себе.
 
 ## 📝 TODO
 - [x] Настроить backend API
 - [x] Интегрировать Whisper
 - [x] Интегрировать Ollama / Qwen
-- [ ] Создать UI расширения
-- [ ] Добавить захват аудио
+- [x] Создать UI расширения
+- [x] Добавить захват аудио
 - [ ] Протестировать на реальных собеседованиях

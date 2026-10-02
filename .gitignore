@@ -36,3 +36,7 @@ logs/
 .env.local
 
 .venv/
+
+# Chrome extension (Vite)
+node_modules/
+frontend/dist/

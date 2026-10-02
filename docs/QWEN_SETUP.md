@@ -99,7 +99,7 @@ Restart the backend after changing configuration. Local configuration reads proc
 - `backend/requirements.txt`: adds `httpx` for nonblocking calls to Ollama, avoiding synchronous generation inside an async API route.
 - `docker-compose.yml`: adds a local Ollama service and persistent model storage. Model download remains explicit, avoiding a large hidden download during API startup.
 - `scripts/setup.sh` and Docker setup scripts: download Qwen instead of leaving the setup pointing at Llama.
-- `chrome-extension/src/popup/`: replaces canned questions/answers with editable input and an actual generation request; surfaces API errors and marks unfinished recording honestly.
+- `chrome-extension/src/popup/` (now `frontend/`, rewritten as a side panel): replaced canned questions/answers with editable input and an actual generation request; surfaces API errors and marks unfinished recording honestly.
 - `README.md` and `docs/ARCHITECTURE.md`: identify Qwen as the answer model and distinguish the implemented text workflow from planned audio capture.
 - `tests/test_qwen.py`: verifies the Ollama request contract, validation, failures, health states and that transcription still calls Whisper. Tests mock model services; they do not download or execute models.
 
