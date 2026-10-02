@@ -26,7 +26,7 @@ python3 -m pip install -r requirements.txt
 
 # Загрузка модели Ollama
 echo "📥 Загрузка модели Qwen (это может занять несколько минут)..."
-ollama pull "${QWEN_MODEL:-qwen3:4b}"
+ollama pull "${QWEN_MODEL:-qwen3:1.7b}"
 
 echo ""
 echo "✨ Установка завершена!"

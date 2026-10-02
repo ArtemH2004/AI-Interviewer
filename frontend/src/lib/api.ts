@@ -6,6 +6,7 @@ export type Health = {
     whisper: 'loaded' | 'not_loaded';
     qwen: 'ready' | 'model_missing' | 'unavailable';
   };
+  qwen_model: string;
 };
 
 export type TranscribeResult = {

@@ -1,7 +1,9 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
-import uvicorn
 import sys
 from pathlib import Path
 
@@ -9,16 +11,38 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from models.whisper_service import get_whisper_service
-from models.config import API_HOST, API_PORT
+from models.config import API_HOST, API_PORT, QWEN_MODEL, WHISPER_MODEL
 from models.qwen_service import QwenService, QwenServiceError
 
-app = FastAPI(title="AI Interview Assistant API")
+# Инициализация сервисов при запуске
+whisper_service = None
+qwen_service = QwenService()
 
-# CORS для Chrome расширения
+
+def load_whisper():
+    """Загрузка Whisper; при первом запуске модель скачивается из HuggingFace"""
+    global whisper_service
+    try:
+        print("📥 Загрузка Whisper модели...")
+        whisper_service = get_whisper_service()
+        print("✅ Whisper загружен успешно")
+    except Exception as e:
+        print(f"⚠️  Ошибка загрузки Whisper: {e}")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    print("🚀 Запуск AI Interview Assistant API...")
+    load_whisper()
+    yield
+
+
+app = FastAPI(title="AI Interview Assistant API", lifespan=lifespan)
+
+# CORS: расширению хватает host_permissions, а cookies API не использует
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене заменить на конкретные origins
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,25 +59,6 @@ class QuestionRequest(BaseModel):
             raise ValueError("Question must not be blank")
         return value.strip()
 
-# Инициализация сервисов при запуске
-whisper_service = None
-qwen_service = QwenService()
-
-@app.on_event("startup")
-async def startup_event():
-    """Инициализация моделей при запуске сервера"""
-    global whisper_service
-
-    print("🚀 Запуск AI Interview Assistant API...")
-
-    try:
-        print("📥 Загрузка Whisper модели...")
-        whisper_service = get_whisper_service()
-        print("✅ Whisper загружен успешно")
-    except Exception as e:
-        print(f"⚠️  Ошибка загрузки Whisper: {e}")
-        whisper_service = None
-
 @app.get("/")
 async def root():
     return {"status": "AI Interview Assistant API is running"}
@@ -63,25 +68,21 @@ async def transcribe_audio(audio: UploadFile = File(...)):
     """
     Преобразование аудио в текст с помощью Whisper
     """
+    # Если при старте модель не скачалась (например, не было сети) — пробуем ещё раз
+    if whisper_service is None:
+        await run_in_threadpool(load_whisper)
     if whisper_service is None:
         raise HTTPException(status_code=503, detail="Whisper service not available")
 
+    audio_data = await audio.read()
+    if not audio_data:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+
     try:
-        # Читаем аудио данные
-        audio_data = await audio.read()
-
-        # Транскрибируем
-        result = whisper_service.transcribe(audio_data)
-
-        return {
-            "success": True,
-            "text": result["text"],
-            "language": result["language"],
-            "language_probability": result["language_probability"],
-            "segments": result["segments"]
-        }
+        result = await run_in_threadpool(whisper_service.transcribe, audio_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Transcription error: {e}") from e
+    return {"success": True, **result}
 
 @app.post("/api/generate-answer")
 async def generate_answer(request: QuestionRequest):
@@ -103,8 +104,12 @@ async def health_check():
         "models": {
             "whisper": whisper_status,
             "qwen": await qwen_service.health()
-        }
+        },
+        "whisper_model": WHISPER_MODEL,
+        "qwen_model": QWEN_MODEL
     }
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run(app, host=API_HOST, port=API_PORT)

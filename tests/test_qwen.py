@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 # Avoid importing the native STT runtime; no Whisper model is loaded in these tests.
 sys.modules.setdefault('faster_whisper', types.SimpleNamespace(WhisperModel=object))
+from backend.models.config import QWEN_MODEL
 from backend.models.qwen_service import QwenService, QwenServiceError
 from backend.api import server
 
@@ -26,7 +27,7 @@ class QwenTests(unittest.IsolatedAsyncioTestCase):
         def handler(request):
             self.assertEqual(request.url.path, '/api/chat')
             payload = json.loads(request.content)
-            self.assertEqual(payload['model'], 'qwen3:4b')
+            self.assertEqual(payload['model'], QWEN_MODEL)
             self.assertFalse(payload['stream'])
             self.assertFalse(payload['think'])
             self.assertIn('en', payload['messages'][0]['content'])
@@ -60,7 +61,7 @@ class QwenTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(caught.exception.status_code, expected)
 
     async def test_health(self):
-        for models, expected in [([{'name': 'qwen3:4b'}], 'ready'), ([], 'model_missing')]:
+        for models, expected in [([{'name': QWEN_MODEL}], 'ready'), ([], 'model_missing')]:
             with patch('httpx.AsyncClient', client_factory(lambda request: httpx.Response(200, json={'models': models}))):
                 self.assertEqual(await QwenService().health(), expected)
         with patch('httpx.AsyncClient', client_factory(lambda request: httpx.Response(500))):
@@ -69,7 +70,7 @@ class QwenTests(unittest.IsolatedAsyncioTestCase):
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
-        self.client = TestClient(server.app)  # No lifespan: do not load Whisper.
+        self.client = TestClient(server.app)  # Not used as a context manager: lifespan (Whisper loading) does not run.
 
     def test_question_validation(self):
         for payload in [{'text': ''}, {'text': '   '}, {'text': 'Q', 'language': ''}]:
@@ -77,7 +78,7 @@ class ApiTests(unittest.TestCase):
 
     def test_answer_and_errors(self):
         from unittest.mock import AsyncMock
-        with patch.object(server.qwen_service, 'generate_answer', AsyncMock(return_value={'success': True, 'answer': 'Answer', 'model': 'qwen3:4b'})) as generate:
+        with patch.object(server.qwen_service, 'generate_answer', AsyncMock(return_value={'success': True, 'answer': 'Answer', 'model': QWEN_MODEL})) as generate:
             response = self.client.post('/api/generate-answer', json={'text': ' Question '})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()['answer'], 'Answer')
@@ -95,6 +96,9 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['text'], 'Question')
         whisper.transcribe.assert_called_once_with(b'audio')
+        with patch.object(server, 'whisper_service', whisper):
+            response = self.client.post('/api/transcribe', files={'audio': ('empty.wav', b'', 'audio/wav')})
+        self.assertEqual(response.status_code, 400)
 
 
 if __name__ == '__main__':

@@ -25,8 +25,8 @@ AI-Interviewer/
 ## 🛠 Технологии
 
 ### Модели (бесплатные, локальные)
-- **Speech-to-Text:** Whisper (faster-whisper)
-- **Text Generation:** Qwen 3 (qwen3:4b) (через Ollama)
+- **Speech-to-Text:** Whisper `base` (faster-whisper)
+- **Text Generation:** Qwen 3 (qwen3:1.7b) (через Ollama)
 
 ### Backend
 - Python (FastAPI)
@@ -56,7 +56,7 @@ chmod +x scripts/docker-setup.sh
 # Linux: curl -fsSL https://ollama.com/install.sh | sh
 
 # Загрузить модель
-ollama pull qwen3:4b
+ollama pull qwen3:1.7b
 
 # Установить Python зависимости
 cd backend
@@ -69,6 +69,15 @@ python api/server.py
 Qwen setup, exact commands, API examples, changes and rationale: [docs/QWEN_SETUP.md](docs/QWEN_SETUP.md).
 
 Подробнее о Whisper: [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md)
+
+### GPU
+
+- **NVIDIA** — и Whisper, и Qwen ускоряются через CUDA (см. раздел GPU в [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md#gpu-опционально)).
+- **Intel / AMD (в т.ч. встроенная Iris Xe)** — Docker на Windows пробрасывает в контейнер только NVIDIA,
+  а faster-whisper умеет только CUDA. Ускорить можно Qwen: запустить Ollama нативно на Windows
+  (Vulkan в свежих версиях включён по умолчанию, в старых — `OLLAMA_VULKAN=1`) и направить backend на неё —
+  в `.env`: `OLLAMA_BASE_URL=http://host.docker.internal:11434`. Поддержка встроенных Intel GPU экспериментальная:
+  проверьте в `ollama ps`, что модель на GPU, и что ответы адекватные. Whisper остаётся на CPU.
 
 ### Установка Chrome расширения
 ```bash
@@ -86,7 +95,7 @@ npm run build        # или npm run dev — пересборка при изм
 - **Голос** — нажмите кнопку записи, задайте вопрос, нажмите ещё раз. Whisper распознает речь, Qwen ответит.
   Источник: микрофон, звук текущей вкладки (Meet/Zoom в браузере) или оба. При первой записи с микрофона
   откроется вкладка с запросом доступа.
-- **Текст** — введите вопрос и нажмите отправить (или Ctrl+Enter).
+- **Текст** — введите вопрос и нажмите Enter (Ctrl+Enter — перенос строки).
 - В настройках: адрес backend, язык ответа, автоответ после распознавания, контекст о себе.
 
 ## 📝 TODO

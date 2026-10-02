@@ -258,8 +258,10 @@ export function App() {
           setAsked({ text: item.question });
           setAnswer(item.answer);
           setError(null);
-          if (mode === 'voice') setTranscript(item.question);
-          else setDraft(item.question);
+          if (mode === 'voice') {
+            setTranscript(item.question);
+            setDetectedLanguage(undefined);
+          } else setDraft(item.question);
         }}
         onClear={() => setHistory([])}
       />
