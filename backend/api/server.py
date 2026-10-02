@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from models.whisper_service import get_whisper_service
-from models.config import API_HOST, API_PORT, QWEN_MODEL
+from models.config import API_HOST, API_PORT, QWEN_MODEL, WHISPER_MODEL
 from models.qwen_service import QwenService, QwenServiceError
 
 # Инициализация сервисов при запуске
@@ -105,6 +105,7 @@ async def health_check():
             "whisper": whisper_status,
             "qwen": await qwen_service.health()
         },
+        "whisper_model": WHISPER_MODEL,
         "qwen_model": QWEN_MODEL
     }
 

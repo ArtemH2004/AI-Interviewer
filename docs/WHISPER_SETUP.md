@@ -66,6 +66,7 @@ curl http://localhost:8000/api/health
     "whisper": "loaded",
     "qwen": "ready"
   },
+  "whisper_model": "base",
   "qwen_model": "qwen3:1.7b"
 }
 ```
@@ -161,6 +162,7 @@ deploy:
     "whisper": "loaded",
     "qwen": "ready"
   },
+  "whisper_model": "base",
   "qwen_model": "qwen3:1.7b"
 }
 ```
