@@ -35,7 +35,7 @@ export function HistoryList({ items, onSelect, onClear }: Props) {
               className="flex w-full min-w-0 items-center gap-3 rounded-field px-3 py-3 text-left transition-colors duration-200 hover:bg-hover focus-visible:bg-hover"
               onClick={() => onSelect(item)}
             >
-              <span className="line-clamp-2 min-w-0 flex-1 break-words text-callout">{item.question}</span>
+              <span className="line-clamp-2 min-w-0 flex-1 wrap-break-word text-callout">{item.question}</span>
               <time className="hint shrink-0 tabular-nums" dateTime={new Date(item.at).toISOString()}>{formatHistoryDate(item.at)}</time>
             </button>
           </li>
