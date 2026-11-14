@@ -8,6 +8,7 @@ export type Settings = {
   source: AudioSource;
   autoAnswer: boolean;
   theme: Theme;
+  context: string;
 };
 
 export type HistoryItem = {
@@ -23,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   source: 'mic',
   autoAnswer: true,
   theme: 'light',
+  context: '',
 };
 
 export const HISTORY_LIMIT = 20;
@@ -32,14 +34,8 @@ export function useStoredState<T>(key: string, initial: T) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    chrome.storage.local.get(key).then(async (items) => {
-      let stored = items[key] as T | undefined;
-      if (key === 'settings' && stored && typeof stored === 'object' && 'context' in stored) {
-        const cleaned = { ...stored };
-        Reflect.deleteProperty(cleaned, 'context');
-        stored = cleaned;
-        await chrome.storage.local.set({ [key]: cleaned });
-      }
+    chrome.storage.local.get(key).then((items) => {
+      const stored = items[key] as T | undefined;
       if (stored !== undefined) {
         setValue(
           typeof initial === 'object' && !Array.isArray(initial) ? { ...initial, ...stored } : stored,

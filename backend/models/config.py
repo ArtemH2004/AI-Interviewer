@@ -1,18 +1,18 @@
-"""
-Конфигурация моделей для AI Interview Assistant
-"""
+"""Application configuration from the project .env and process environment."""
 import os
+from dotenv import load_dotenv
 
-# Whisper настройки (переопределяются переменными окружения, см. docker-compose.yml)
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")  # tiny, base, small, medium, large-v3
-WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")    # cpu, cuda (только NVIDIA) или auto
-WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")  # int8, float16 (cuda), float32
+load_dotenv()
 
-# API настройки
-API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", "8000"))
+WHISPER_MODEL = os.environ["WHISPER_MODEL"]
+WHISPER_DEVICE = os.environ["WHISPER_DEVICE"]
+WHISPER_COMPUTE_TYPE = os.environ["WHISPER_COMPUTE_TYPE"]
+MAX_AUDIO_BYTES = int(os.environ["MAX_AUDIO_BYTES"])
 
-# Qwen answer generation only; Whisper settings above stay independent.
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-QWEN_MODEL = os.getenv("QWEN_MODEL", "qwen3:1.7b")
-QWEN_TIMEOUT = float(os.getenv("QWEN_TIMEOUT", "120"))
+OLLAMA_BASE_URL = os.environ["OLLAMA_BASE_URL"].rstrip("/")
+QWEN_MODEL = os.environ["QWEN_MODEL"]
+QWEN_TIMEOUT = float(os.environ["QWEN_TIMEOUT"])
+EMBEDDING_MODEL = os.environ["EMBEDDING_MODEL"]
+EMBEDDING_TIMEOUT = float(os.environ["EMBEDDING_TIMEOUT"])
+RAG_CHUNK_SIZE = int(os.environ["RAG_CHUNK_SIZE"])
+RAG_TOP_K = int(os.environ["RAG_TOP_K"])

@@ -58,10 +58,13 @@ export function ModelStatus({ apiBase }: { apiBase: string }) {
   const { health } = status;
   const whisperReady = health.models.whisper === 'loaded';
   const qwenReady = health.models.qwen === 'ready';
+  const embeddingReady = health.models.embedding === 'ready';
   const issues = [
     !whisperReady && 'Модель распознавания речи не загружена.',
     health.models.qwen === 'model_missing' && 'Модель для ответов не скачана.',
     health.models.qwen === 'unavailable' && 'Сервис ответов недоступен.',
+    health.models.embedding === 'model_missing' && 'Модель поиска по опыту не скачана.',
+    health.models.embedding === 'unavailable' && 'Сервис поиска по опыту недоступен.',
   ].filter(Boolean);
 
   return (
@@ -69,6 +72,7 @@ export function ModelStatus({ apiBase }: { apiBase: string }) {
       <div className="model-status-indicators">
         <Indicator label="Речь" ready={whisperReady} available="готова" unavailable="недоступна" />
         <Indicator label="Ответы" ready={qwenReady} available="готовы" unavailable="недоступны" />
+        <Indicator label="Поиск" ready={embeddingReady} available="готов" unavailable="недоступен" />
       </div>
       {issues.length > 0 && <p className="model-status-detail">{issues.join(' ')}</p>}
     </div>

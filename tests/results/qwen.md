@@ -1,43 +1,61 @@
-# Qwen `qwen3:1.7b`
+# Qwen
 
-## Запрос: Чем список отличается от кортежа в Python?
+Тестов: 2; ошибок: 0; пропущено: 0; время: 56.5 с
 
-**Ответ:**
+## test_blank_question_is_rejected (test_qwen.QwenIntegrationTests.test_blank_question_is_rejected)
 
-Список (list) в Python отличается от кортежа (tuple) тем, что список изменяем (mutable), а кортеж — неизменяем (immutable). 
+Результат: OK
 
-Пример:  
+
+## test_real_model_generates_answer (test_qwen.QwenIntegrationTests.test_real_model_generates_answer)
+
+Результат: OK
+
+Модель: `qwen3:1.7b`
+
+### Вопрос: Чем список отличается от кортежа в Python?
+
+В Python список и кортеж отличаются тем, что список является изменяемым (mutable), а кортеж — неизменяемым (immutable). 
+
+**Пример:**  
+Список:  
 ```python
-lst = [1, 2, 3]  # список, можно изменить
-tpl = (1, 2, 3)  # кортеж, нельзя изменить
+my_list = [1, 2, 3]
+my_list[0] = 10  # Меняем значение
 ```
 
-Если нужно сохранить данные и не изменять их, лучше использовать кортеж. Если нужно изменять данные — список.
+Кортеж:  
+```python
+my_tuple = (1, 2, 3)
+# my_tuple[0] = 10  # Ошибка: нельзя изменить кортеж
+```
 
-## Запрос: Что такое индекс в базе данных и когда он замедляет работу?
+**Заметка:** Детали работы кандидата не предоставлены, поэтому ответ основан только на общепринятых фактах Python.
 
-**Ответ:**
+### Вопрос: Что такое индекс в базе данных и когда он замедляет работу?
 
-Индекс в базе данных — это структура, которая ускоряет поиск данных. Он создается на одной из колонок таблицы и содержит сортированные значения этой колонки. Индекс ускоряет выполнение запросов, но при этом увеличивает размер таблицы и использует больше памяти. Индекс замедляет работу базы данных, когда он становится слишком большим или когда данные в таблице изменяются часто, что приводит к необходимости частой пересоздавать индекс. 
+Индекс в базе данных — это структура, которая ускоряет поиск данных. Он создается на колонке или колонках таблицы и хранится отдельно. Индексы уменьшают время выполнения операций выборки и обновления, но они также увеличивают использование памяти и время записи.
 
-Пример: Если в таблице есть столбец с большим количеством уникальных значений, и вы создаете индекс на этом столбце, то индекс ускорит поиск, но при частых изменениях данных индекс может становиться ненужным и замедлить работу базы.
+Пример: Если вы часто выполняете поиск по колонке "имя" в таблице сотрудников, создайте индекс на этой колонке. Это ускорит поиск, но если данные в этой колонке редко меняются, индекс может стать ненужным и замедлить работу базы данных.
 
-## Запрос: What is the difference between a process and a thread?
+### Вопрос: What is the difference between a process and a thread?
 
-**Ответ:**
+The difference between a process and a thread lies in their scope and level of abstraction:
 
-A process is a program in execution, including its current state (e.g., ready, running, waiting), while a thread is a sequence of instructions within a process. Threads share the same process and exhibit parallel execution.
+- **Process**: A process is a program in execution. It includes the program's code, data, and system resources. A process is independent and can be paused, resumed, or terminated. It has a unique process ID (PID) and is the basic unit of execution in an operating system.
+
+- **Thread**: A thread is a lightweight unit of execution within a process. It shares the process's resources, such as memory and file descriptors, and is managed by the operating system. Threads allow for concurrent execution within a single process, enabling parallelism and improved performance.
+
+**Example**:  
+A web server might have multiple threads to handle different client requests simultaneously, while the server process as a whole manages the threads, resources, and overall execution.
+
+### Вопрос: Explain REST API in simple terms.
+
+REST API refers to an application programming interface (API) that uses the Representational State Transfer (REST) architectural style. It is stateless, client-server, cache-friendly, and uses standard HTTP methods (GET, POST, PUT, DELETE) to interact with resources.
 
 **Example:**  
-A web browser has a process that contains multiple threads for handling different tasks like rendering, networking, and user input.
+A user can retrieve a user's profile by sending a GET request to `/users/123`, and update their information by sending a PUT request to `/users/123`.
 
-## Запрос: Explain REST API in simple terms.
+**Note:** The candidate's context does not provide specific details about the candidate's experience or knowledge, so the answer is based on general knowledge of REST API concepts.
 
-**Ответ:**
 
-REST API refers to an application program interface (API) that uses the Representational State Transfer (REST) architectural style. It is based on standard HTTP methods like GET, POST, PUT, and DELETE to perform operations on resources.
-
-**Example:**  
-Imagine a blog post as a resource. A REST API would allow you to retrieve a blog post (GET), create a new one (POST), update an existing one (PUT), and delete it (DELETE).
-
-This approach is stateless, scalable, and easy to understand.
