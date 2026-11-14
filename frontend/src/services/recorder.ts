@@ -22,32 +22,7 @@ async function getMicStream(): Promise<MediaStream> {
   }
 }
 
-function getTabStreamId(tabId: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    chrome.tabCapture.getMediaStreamId({ targetTabId: tabId }, (streamId) => {
-      const lastError = chrome.runtime.lastError;
-      if (lastError || !streamId) reject(new Error(lastError?.message ?? 'empty stream id'));
-      else resolve(streamId);
-    });
-  });
-}
-
-type TabCapture = {
-  stream: MediaStream;
-  needsPlayback: boolean;
-};
-
-async function captureActiveTab(): Promise<TabCapture> {
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (tab?.id === undefined) throw new Error('Не найдена активная вкладка');
-  const streamId = await getTabStreamId(tab.id);
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } },
-  } as unknown as MediaStreamConstraints);
-  return { stream, needsPlayback: true };
-}
-
-async function pickTabWithAudio(): Promise<TabCapture> {
+async function pickTabWithAudio(): Promise<MediaStream> {
   let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
@@ -68,16 +43,7 @@ async function pickTabWithAudio(): Promise<TabCapture> {
     throw new RecorderError('В диалоге не включён звук. Выберите вкладку и отметьте «Поделиться звуком вкладки».', 'tab');
   }
   stream.getVideoTracks().forEach((t) => t.stop());
-  return { stream, needsPlayback: false };
-}
-
-async function getTabStream(): Promise<TabCapture> {
-  try {
-    return await captureActiveTab();
-  } catch (error) {
-    console.warn('tabCapture недоступен, показываем выбор вкладки:', error);
-    return pickTabWithAudio();
-  }
+  return stream;
 }
 
 export class AudioRecorder {
@@ -89,15 +55,16 @@ export class AudioRecorder {
 
   async start(source: AudioSource, onLevel: (level: number) => void) {
     let micStream: MediaStream | undefined;
-    let tab: TabCapture | undefined;
+    let tabStream: MediaStream | undefined;
     try {
+      // getDisplayMedia must be called directly from the recording button's user gesture.
+      if (source !== 'mic') tabStream = await pickTabWithAudio();
       if (source !== 'tab') micStream = await getMicStream();
-      if (source !== 'mic') tab = await getTabStream();
     } catch (error) {
       micStream?.getTracks().forEach((t) => t.stop());
+      tabStream?.getTracks().forEach((t) => t.stop());
       throw error;
     }
-    const tabStream = tab?.stream;
     this.streams = [micStream, tabStream].filter((s): s is MediaStream => !!s);
 
     const context = new AudioContext();
@@ -108,7 +75,6 @@ export class AudioRecorder {
       const node = context.createMediaStreamSource(stream);
       node.connect(destination);
       node.connect(analyser);
-      if (stream === tabStream && tab?.needsPlayback) node.connect(context.destination);
     }
     this.context = context;
 

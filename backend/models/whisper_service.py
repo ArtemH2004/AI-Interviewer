@@ -7,7 +7,7 @@ from faster_whisper import WhisperModel
 
 
 class WhisperService:
-    def __init__(self, model_size="base", device="cpu", compute_type="int8"):
+    def __init__(self, model_size, device, compute_type):
         """
         Инициализация Whisper модели
 
@@ -36,8 +36,6 @@ class WhisperService:
             dict с полями:
                 - text: распознанный текст
                 - language: определённый язык
-                - language_probability: уверенность в языке (0..1)
-                - segments: детализированные сегменты
         """
         segments, info = self.model.transcribe(
             io.BytesIO(audio_data),
@@ -48,35 +46,7 @@ class WhisperService:
         )
 
         # segments — генератор: распознавание идёт по мере итерации
-        segments_list = [
-            {
-                "start": segment.start,
-                "end": segment.end,
-                "text": segment.text,
-                "avg_logprob": segment.avg_logprob,  # лог-вероятность (≤ 0), а не процент уверенности
-            }
-            for segment in segments
-        ]
-
         return {
-            "text": "".join(s["text"] for s in segments_list).strip(),
+            "text": "".join(segment.text for segment in segments).strip(),
             "language": info.language,
-            "language_probability": info.language_probability,
-            "segments": segments_list
         }
-
-
-# Singleton instance
-_whisper_service = None
-
-def get_whisper_service() -> WhisperService:
-    """Получить инстанс Whisper сервиса (singleton)"""
-    global _whisper_service
-    if _whisper_service is None:
-        from .config import WHISPER_MODEL, WHISPER_DEVICE, WHISPER_COMPUTE_TYPE
-        _whisper_service = WhisperService(
-            model_size=WHISPER_MODEL,
-            device=WHISPER_DEVICE,
-            compute_type=WHISPER_COMPUTE_TYPE,
-        )
-    return _whisper_service
