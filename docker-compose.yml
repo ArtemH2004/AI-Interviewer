@@ -3,27 +3,28 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:?Set PYTHON_IMAGE in .env}
     container_name: ai-interview-backend
     ports:
-      - "127.0.0.1:8000:8000"
+      - "${API_PUBLISH_HOST:?}:${API_PUBLISH_PORT:?}:${API_PORT:?}"
+    env_file:
+      - .env
     environment:
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-      - QWEN_MODEL=${QWEN_MODEL:-qwen3:1.7b}
-      - QWEN_TIMEOUT=${QWEN_TIMEOUT:-120}
-      - WHISPER_MODEL=${WHISPER_MODEL:-base}
-      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
-      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
+      OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:?Set OLLAMA_DOCKER_BASE_URL in .env}
     volumes:
-      - ./backend:/app
+      - ./backend:/app/backend
       - whisper-cache:/root/.cache/huggingface
     depends_on:
       - ollama
     restart: unless-stopped
 
   ollama:
-    image: ollama/ollama:latest
-    environment:
-      - QWEN_MODEL=${QWEN_MODEL:-qwen3:1.7b}
+    image: ${OLLAMA_IMAGE:?Set OLLAMA_IMAGE in .env}
+    ports:
+      - "${OLLAMA_PUBLISH_HOST:?}:${OLLAMA_PORT:?}:11434"
+    env_file:
+      - .env
     volumes:
       - ollama-cache:/root/.ollama
     restart: unless-stopped

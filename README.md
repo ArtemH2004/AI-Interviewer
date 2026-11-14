@@ -22,7 +22,7 @@ AI-Interviewer/
 │   ├── public/             # manifest.json и иконки
 │   └── dist/               # Собранное расширение (генерируется)
 ├── docs/                    # Документация
-├── scripts/                 # Скрипты для установки и настройки
+├── setup.bat                # Установка и настройка для Windows
 └── tests/                   # Тесты
 ```
 
@@ -44,14 +44,13 @@ AI-Interviewer/
 
 ### Вариант 1: Docker (Рекомендуется)
 
-```bash
-# Windows
-scripts\docker-setup.bat
+В Windows запустите скрипт и выберите Docker (1) или локальную установку (2). Скрипт создаст `.env` из `.env.example`, если файла ещё нет. Для Docker нужен запущенный Docker Desktop, для локальной установки — Python и запущенная Ollama.
 
-# Linux/Mac
-chmod +x scripts/docker-setup.sh
-./scripts/docker-setup.sh
+```bash
+setup.bat
 ```
+
+В Linux и macOS Docker можно запустить вручную по инструкциям в [QWEN_SETUP.md](docs/QWEN_SETUP.md#docker-setup).
 
 ### Вариант 2: Локальная установка
 
@@ -59,16 +58,18 @@ chmod +x scripts/docker-setup.sh
 # Установить и запустить Ollama: https://ollama.com/download
 # Linux: curl -fsSL https://ollama.com/install.sh | sh
 
-# Загрузить модель
+# Загрузить модели
 ollama pull qwen3:1.7b
+ollama pull qwen3-embedding:0.6b
 
 # Установить Python зависимости
-cd backend
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 # Запуск
-python api/server.py
+python -m uvicorn backend.api.server:app --host 127.0.0.1 --port 8000
 ```
+
+Команды выполняются из корня проекта; предварительно скопируйте `.env.example` в `.env`. Настройки расширения позволяют сохранить опыт кандидата локально в браузере: при каждом запросе он отправляется на backend, где подходящие фрагменты передаются Qwen. Для короткого контекста embeddings не вычисляются. Загружаемое аудио ограничено значением `MAX_AUDIO_BYTES`.
 
 Qwen setup, exact commands, API examples, changes and rationale: [docs/QWEN_SETUP.md](docs/QWEN_SETUP.md).
 
@@ -80,7 +81,7 @@ Qwen setup, exact commands, API examples, changes and rationale: [docs/QWEN_SETU
 - **Intel / AMD (в т.ч. встроенная Iris Xe)** — Docker на Windows пробрасывает в контейнер только NVIDIA,
   а faster-whisper умеет только CUDA. Ускорить можно Qwen: запустить Ollama нативно на Windows
   (Vulkan в свежих версиях включён по умолчанию, в старых — `OLLAMA_VULKAN=1`) и направить backend на неё —
-  в `.env`: `OLLAMA_BASE_URL=http://host.docker.internal:11434`. Поддержка встроенных Intel GPU экспериментальная:
+  в `.env`: `OLLAMA_DOCKER_BASE_URL=http://host.docker.internal:11434`. Поддержка встроенных Intel GPU экспериментальная:
   проверьте в `ollama ps`, что модель на GPU, и что ответы адекватные. Whisper остаётся на CPU.
 
 ### Установка Chrome расширения
@@ -97,10 +98,20 @@ npm run build        # или npm run dev — пересборка при изм
 
 Использование:
 - **Голос** — нажмите кнопку записи, задайте вопрос, нажмите ещё раз. Whisper распознает речь, Qwen ответит.
-  Источник: микрофон, звук текущей вкладки (Meet/Zoom в браузере) или оба. При первой записи с микрофона
+  Источник: микрофон, звук выбранной вкладки (Meet/Zoom в браузере) или оба. Для звука вкладки выберите её в диалоге и включите передачу звука. При первой записи с микрофона
   откроется вкладка с запросом доступа.
 - **Текст** — введите вопрос и нажмите Enter (Ctrl+Enter — перенос строки).
 - В настройках: тема, язык ответа и автоответ после распознавания.
+
+## Тестирование моделей
+
+Установите Python-зависимости (`pip install -r backend/requirements.txt`) и запустите backend и Ollama с загруженными моделями. Затем выполните из корня проекта:
+
+```bash
+python tests/model_report.py
+```
+
+Команда запускает тесты Qwen, Whisper и embeddings и сохраняет отчёты в `tests/results/`. Проверки реальной модели embeddings пропускаются, если она недоступна по адресу `OLLAMA_BASE_URL`.
 
 ## 📝 TODO
 - [x] Настроить backend API
