@@ -6,9 +6,7 @@ model and are skipped if Ollama is not reachable:
     docker compose up -d
     python -m unittest tests.test_embedding -v
 
-Run as a script to also save the report to tests/results/embedding.md:
-
-    python tests/test_embedding.py
+Run python tests/model_report.py to save reports for all models.
 """
 import json
 import sys
@@ -218,46 +216,5 @@ class LiveEmbeddingTests(unittest.IsolatedAsyncioTestCase):
         ]))
 
 
-class ReportResult(unittest.TextTestResult):
-    """Remembers the outcome of every test for the markdown report."""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.outcomes = []
-
-    def addSuccess(self, test):
-        super().addSuccess(test)
-        self.outcomes.append((test, '✅ ok'))
-
-    def addFailure(self, test, err):
-        super().addFailure(test, err)
-        self.outcomes.append((test, '❌ fail'))
-
-    def addError(self, test, err):
-        super().addError(test, err)
-        self.outcomes.append((test, '❌ error'))
-
-    def addSkip(self, test, reason):
-        super().addSkip(test, reason)
-        self.outcomes.append((test, f'⏭ skipped: {reason}'))
-
-
-def write_report(result, elapsed):
-    lines = [f'# Embedding `{EMBEDDING_MODEL}`', '',
-             f'Тестов: {result.testsRun}, ошибок: {len(result.failures) + len(result.errors)}, '
-             f'пропущено: {len(result.skipped)}, время: {elapsed:.1f} с', '',
-             '| Тест | Результат |', '|---|---|']
-    lines += [f'| `{type(test).__name__}.{test._testMethodName}` | {status} |' for test, status in result.outcomes]
-    for title, example in LIVE_EXAMPLES:
-        lines += ['', f'## {title}', '', *example]
-    path = Path(__file__).parent / 'results' / 'embedding.md'
-    path.parent.mkdir(exist_ok=True)
-    path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-    print(f'Отчёт: {path}')
-
-
 if __name__ == '__main__':
-    suite = unittest.defaultTestLoader.loadTestsFromModule(sys.modules[__name__])
-    started = time.perf_counter()
-    result = unittest.TextTestRunner(resultclass=ReportResult, verbosity=2).run(suite)
-    write_report(result, time.perf_counter() - started)
-    sys.exit(not result.wasSuccessful())
+    unittest.main(verbosity=2)

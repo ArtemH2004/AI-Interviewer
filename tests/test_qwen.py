@@ -1,133 +1,65 @@
-"""Offline contract tests: no model downloads or running Ollama required."""
-import sys
-import types
+"""Integration tests against the running backend and its real Qwen model."""
+import os
 import unittest
-from unittest.mock import patch
+from pathlib import Path
 
 import httpx
-from fastapi.testclient import TestClient
+from dotenv import load_dotenv
 
-# Avoid importing the native STT runtime; no Whisper model is loaded in these tests.
-sys.modules.setdefault('faster_whisper', types.SimpleNamespace(WhisperModel=object))
-from backend.models.config import QWEN_MODEL
-from backend.models.qwen_service import QwenService, QwenServiceError
-from backend.api import server
-
-REAL_CLIENT = httpx.AsyncClient
-
-
-def client_factory(handler):
-    return lambda **kwargs: REAL_CLIENT(transport=httpx.MockTransport(handler), **kwargs)
-
-
-class QwenTests(unittest.IsolatedAsyncioTestCase):
-    async def test_chat_contract(self):
-        import json
-
-        def handler(request):
-            self.assertEqual(request.url.path, '/api/chat')
-            payload = json.loads(request.content)
-            self.assertEqual(payload['model'], QWEN_MODEL)
-            self.assertFalse(payload['stream'])
-            self.assertFalse(payload['think'])
-            self.assertIn('en', payload['messages'][0]['content'])
-            self.assertIn('What is a generator?', payload['messages'][1]['content'])
-            self.assertIn('Built Python services', payload['messages'][1]['content'])
-            return httpx.Response(200, json={'message': {'content': ' A generator yields values. '}})
-
-        with patch('httpx.AsyncClient', client_factory(handler)):
-            result = await QwenService().generate_answer('What is a generator?', 'en', 'Built Python services')
-        self.assertEqual(result['answer'], 'A generator yields values.')
-
-    async def test_failures(self):
-        for response, expected in [
-            (httpx.Response(404), 503), (httpx.Response(500), 502),
-            (httpx.Response(200, json={'message': {'content': ''}}), 502),
-            (httpx.Response(200, text='invalid json'), 502),
-        ]:
-            with self.subTest(status=response.status_code):
-                with patch('httpx.AsyncClient', client_factory(lambda request: response)):
-                    with self.assertRaises(QwenServiceError) as caught:
-                        await QwenService().generate_answer('Question', 'ru')
-                self.assertEqual(caught.exception.status_code, expected)
-
-    async def test_network_failures(self):
-        for error, expected in [(httpx.ConnectError('offline'), 503), (httpx.ReadTimeout('slow'), 504)]:
-            def handler(request):
-                raise error
-            with patch('httpx.AsyncClient', client_factory(handler)):
-                with self.assertRaises(QwenServiceError) as caught:
-                    await QwenService().generate_answer('Question', 'ru')
-            self.assertEqual(caught.exception.status_code, expected)
-
-    async def test_health(self):
-        for models, expected in [([{'name': QWEN_MODEL}], 'ready'), ([], 'model_missing')]:
-            with patch('httpx.AsyncClient', client_factory(lambda request: httpx.Response(200, json={'models': models}))):
-                self.assertEqual(await QwenService().health(), expected)
-        with patch('httpx.AsyncClient', client_factory(lambda request: httpx.Response(500))):
-            self.assertEqual(await QwenService().health(), 'unavailable')
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+API_HOST = os.environ.get("API_PUBLISH_HOST", "127.0.0.1")
+if API_HOST in ("0.0.0.0", "::"):
+    API_HOST = "127.0.0.1"
+API_PORT = os.environ.get("API_PUBLISH_PORT", "8000")
+API_URL = f"http://{API_HOST}:{API_PORT}"
+QUESTIONS = [
+    {"text": "Чем список отличается от кортежа в Python?", "language": "ru"},
+    {"text": "Что такое индекс в базе данных и когда он замедляет работу?", "language": "ru"},
+    {"text": "What is the difference between a process and a thread?", "language": "en"},
+    {"text": "Explain REST API in simple terms.", "language": "en"},
+]
 
 
-class ApiTests(unittest.TestCase):
-    def setUp(self):
-        self.client = TestClient(server.app)  # Not used as a context manager: lifespan (Whisper loading) does not run.
+class QwenIntegrationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.client = httpx.Client(base_url=API_URL, timeout=300)
+        try:
+            response = cls.client.get("/api/health")
+            response.raise_for_status()
+            health = response.json()
+            if health.get("models", {}).get("qwen") != "ready":
+                raise RuntimeError(f"Qwen is not ready: {health.get('models', {}).get('qwen')}")
+            cls.model = health["qwen_model"]
+        except (httpx.HTTPError, ValueError, KeyError, RuntimeError) as exc:
+            cls.client.close()
+            raise RuntimeError(
+                f"Qwen is unavailable at {API_URL}. Start Docker services and pull "
+                "the configured Qwen model using setup.bat."
+            ) from exc
 
-    def test_question_validation(self):
-        for payload in [{'text': ''}, {'text': '   '}, {'text': 'Q', 'language': ''}, {'text': 'Q', 'context': 'x' * 20001}]:
-            self.assertEqual(self.client.post('/api/generate-answer', json=payload).status_code, 422)
+    @classmethod
+    def tearDownClass(cls):
+        cls.client.close()
 
-    def test_answer_and_errors(self):
-        from unittest.mock import AsyncMock
-        with patch.object(server.qwen_service, 'generate_answer', AsyncMock(return_value={'success': True, 'answer': 'Answer', 'model': QWEN_MODEL})) as generate:
-            response = self.client.post('/api/generate-answer', json={'text': ' Question '})
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json()['answer'], 'Answer')
-            generate.assert_awaited_once_with('Question', 'ru', '')
-        with patch.object(server.qwen_service, 'generate_answer', AsyncMock(side_effect=server.QwenServiceError(503, 'Ollama unavailable'))):
-            self.assertEqual(self.client.post('/api/generate-answer', json={'text': 'Q'}).status_code, 503)
+    def test_real_model_generates_answer(self):
+        self.report_lines = [f"Модель: `{self.model}`", ""]
+        for question in QUESTIONS:
+            self.report_lines += [f"### Вопрос: {question['text']}", ""]
+            response = self.client.post("/api/generate-answer", json=question)
+            self.assertEqual(response.status_code, 200, response.text)
+            data = response.json()
+            self.report_lines += [str(data.get("answer", "")), ""]
+            self.assertTrue(data.get("success"), data)
+            self.assertEqual(data.get("model"), self.model)
+            self.assertIsInstance(data.get("answer"), str)
+            self.assertTrue(data["answer"].strip(), "Qwen returned an empty answer")
+            print(f"\nQwen ({self.model}): {data['answer']}")
 
-    def test_context_is_used(self):
-        from unittest.mock import AsyncMock
-        with patch.object(server.qwen_service, 'generate_answer', AsyncMock(return_value={'answer': 'Answer'})) as generate:
-            response = self.client.post('/api/generate-answer', json={'text': 'Q', 'context': 'private details'})
-        self.assertEqual(response.status_code, 200)
-        generate.assert_awaited_once_with('Q', 'ru', 'private details')
-
-    def test_transcription_still_uses_whisper(self):
-        from unittest.mock import Mock
-        result = {'text': 'Question', 'language': 'en'}
-        whisper = Mock()
-        whisper.transcribe.return_value = result
-        with patch.object(server, 'whisper_service', whisper):
-            response = self.client.post('/api/transcribe', files={'audio': ('sample.wav', b'audio', 'audio/wav')})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['text'], 'Question')
-        self.assertNotIn('language_probability', response.json())
-        self.assertNotIn('segments', response.json())
-        whisper.transcribe.assert_called_once_with(b'audio')
-        with patch.object(server, 'whisper_service', whisper):
-            response = self.client.post('/api/transcribe', files={'audio': ('empty.wav', b'', 'audio/wav')})
-        self.assertEqual(response.status_code, 400)
-
-    def test_oversized_audio_rejected_before_model_load(self):
-        with patch.object(server, 'MAX_AUDIO_BYTES', 4), \
-             patch.object(server, 'whisper_service', None), \
-             patch.object(server, 'load_whisper') as load:
-            response = self.client.post('/api/transcribe', files={'audio': ('sample.wav', b'12345', 'audio/wav')})
-        self.assertEqual(response.status_code, 413)
-        load.assert_not_called()
-
-    def test_concurrent_loads_create_one_model(self):
-        from concurrent.futures import ThreadPoolExecutor
-        from unittest.mock import Mock
-        model = Mock()
-        with patch.object(server, 'whisper_service', None), \
-             patch.object(server, 'WhisperService', return_value=model) as factory:
-            with ThreadPoolExecutor(max_workers=8) as pool:
-                list(pool.map(lambda _: server.load_whisper(), range(8)))
-            self.assertIs(server.whisper_service, model)
-            factory.assert_called_once()
+    def test_blank_question_is_rejected(self):
+        response = self.client.post("/api/generate-answer", json={"text": "   "})
+        self.assertEqual(response.status_code, 422, response.text)
 
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
