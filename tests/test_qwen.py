@@ -32,10 +32,11 @@ class QwenTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(payload['think'])
             self.assertIn('en', payload['messages'][0]['content'])
             self.assertIn('What is a generator?', payload['messages'][1]['content'])
+            self.assertIn('Built Python services', payload['messages'][1]['content'])
             return httpx.Response(200, json={'message': {'content': ' A generator yields values. '}})
 
         with patch('httpx.AsyncClient', client_factory(handler)):
-            result = await QwenService().generate_answer('What is a generator?', 'en')
+            result = await QwenService().generate_answer('What is a generator?', 'en', 'Built Python services')
         self.assertEqual(result['answer'], 'A generator yields values.')
 
     async def test_failures(self):
@@ -72,7 +73,7 @@ class ApiTests(unittest.TestCase):
         self.client = TestClient(server.app)  # Not used as a context manager: lifespan (Whisper loading) does not run.
 
     def test_question_validation(self):
-        for payload in [{'text': ''}, {'text': '   '}, {'text': 'Q', 'language': ''}]:
+        for payload in [{'text': ''}, {'text': '   '}, {'text': 'Q', 'language': ''}, {'text': 'Q', 'context': 'x' * 20001}]:
             self.assertEqual(self.client.post('/api/generate-answer', json=payload).status_code, 422)
 
     def test_answer_and_errors(self):
@@ -81,31 +82,51 @@ class ApiTests(unittest.TestCase):
             response = self.client.post('/api/generate-answer', json={'text': ' Question '})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()['answer'], 'Answer')
-            generate.assert_awaited_once_with('Question', 'ru')
+            generate.assert_awaited_once_with('Question', 'ru', '')
         with patch.object(server.qwen_service, 'generate_answer', AsyncMock(side_effect=server.QwenServiceError(503, 'Ollama unavailable'))):
             self.assertEqual(self.client.post('/api/generate-answer', json={'text': 'Q'}).status_code, 503)
 
-    def test_legacy_context_is_not_used(self):
+    def test_context_is_used(self):
         from unittest.mock import AsyncMock
-        self.assertNotIn('context', server.QuestionRequest.model_json_schema()['properties'])
         with patch.object(server.qwen_service, 'generate_answer', AsyncMock(return_value={'answer': 'Answer'})) as generate:
             response = self.client.post('/api/generate-answer', json={'text': 'Q', 'context': 'private details'})
         self.assertEqual(response.status_code, 200)
-        generate.assert_awaited_once_with('Q', 'ru')
+        generate.assert_awaited_once_with('Q', 'ru', 'private details')
 
     def test_transcription_still_uses_whisper(self):
         from unittest.mock import Mock
-        result = {'text': 'Question', 'language': 'en', 'language_probability': 0.99, 'segments': []}
+        result = {'text': 'Question', 'language': 'en'}
         whisper = Mock()
         whisper.transcribe.return_value = result
         with patch.object(server, 'whisper_service', whisper):
             response = self.client.post('/api/transcribe', files={'audio': ('sample.wav', b'audio', 'audio/wav')})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['text'], 'Question')
+        self.assertNotIn('language_probability', response.json())
+        self.assertNotIn('segments', response.json())
         whisper.transcribe.assert_called_once_with(b'audio')
         with patch.object(server, 'whisper_service', whisper):
             response = self.client.post('/api/transcribe', files={'audio': ('empty.wav', b'', 'audio/wav')})
         self.assertEqual(response.status_code, 400)
+
+    def test_oversized_audio_rejected_before_model_load(self):
+        with patch.object(server, 'MAX_AUDIO_BYTES', 4), \
+             patch.object(server, 'whisper_service', None), \
+             patch.object(server, 'load_whisper') as load:
+            response = self.client.post('/api/transcribe', files={'audio': ('sample.wav', b'12345', 'audio/wav')})
+        self.assertEqual(response.status_code, 413)
+        load.assert_not_called()
+
+    def test_concurrent_loads_create_one_model(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from unittest.mock import Mock
+        model = Mock()
+        with patch.object(server, 'whisper_service', None), \
+             patch.object(server, 'WhisperService', return_value=model) as factory:
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                list(pool.map(lambda _: server.load_whisper(), range(8)))
+            self.assertIs(server.whisper_service, model)
+            factory.assert_called_once()
 
 
 if __name__ == '__main__':

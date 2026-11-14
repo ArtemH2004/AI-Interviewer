@@ -61,6 +61,17 @@ export function SettingsDialog({ open, settings, onChange, onClose }: Props) {
             onChange={(autoAnswer) => onChange({ autoAnswer })}
           />
 
+          <FormField label="Опыт и навыки">
+            <textarea
+              aria-label="Опыт и навыки"
+              className="field min-h-28 resize-y"
+              maxLength={20000}
+              value={settings.context}
+              onChange={(event) => onChange({ context: event.target.value })}
+              placeholder="Расскажите о своём опыте, проектах и навыках…"
+            />
+          </FormField>
+
         </div>
       </div>
     </div>

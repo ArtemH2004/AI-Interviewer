@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "description": "AI-ассистент для помощи в прохождении собеседований",
   "minimum_chrome_version": "116",
-  "permissions": ["storage", "sidePanel", "tabCapture", "activeTab"],
+  "permissions": ["storage", "sidePanel"],
   "host_permissions": ["http://localhost:8000/*", "http://127.0.0.1:8000/*"],
   "action": {
     "default_title": "AI Interview Assistant",

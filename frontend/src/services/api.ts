@@ -3,6 +3,7 @@ export type Health = {
   models: {
     whisper: 'loaded' | 'not_loaded';
     qwen: 'ready' | 'model_missing' | 'unavailable';
+    embedding: 'ready' | 'model_missing' | 'unavailable';
   };
   qwen_model: string;
 };
@@ -10,7 +11,6 @@ export type Health = {
 export type TranscribeResult = {
   text: string;
   language: string;
-  language_probability: number;
 };
 
 export type AnswerResult = {
@@ -51,10 +51,10 @@ export function transcribe(base: string, audio: Blob) {
   return request<TranscribeResult>(base, '/api/transcribe', { method: 'POST', body });
 }
 
-export function generateAnswer(base: string, text: string, language: string) {
+export function generateAnswer(base: string, text: string, language: string, context: string) {
   return request<AnswerResult>(base, '/api/generate-answer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, language }),
+    body: JSON.stringify({ text, language, context }),
   });
 }
