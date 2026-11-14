@@ -12,19 +12,15 @@ class QwenServiceError(Exception):
 
 
 class QwenService:
-    async def generate_answer(self, text: str, context: str, language: str) -> dict:
+    async def generate_answer(self, text: str, language: str) -> dict:
         messages = [
             {"role": "system", "content": (
                 "Help the user practice interview questions. Give a concise, accurate answer "
                 "that can be spoken aloud, with a short example when useful. "
                 "Do not invent the candidate's work history, qualifications or achievements. "
-                "Use provided candidate context when relevant; otherwise give a general answer. "
                 f"Answer in the language identified by this code: {language}."
             )},
-            {"role": "user", "content": (
-                f"Candidate context:\n{context or '(not provided)'}\n\n"
-                f"Interview question:\n{text}"
-            )},
+            {"role": "user", "content": f"Interview question:\n{text}"},
         ]
         try:
             async with httpx.AsyncClient(timeout=QWEN_TIMEOUT) as client:

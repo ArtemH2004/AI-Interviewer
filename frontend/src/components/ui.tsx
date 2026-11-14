@@ -1,5 +1,3 @@
-// Базовые UI-примитивы. Стили живут в styles.css (btn, card, label, field…),
-// здесь только сборка классов и разметки, чтобы не дублировать её по компонентам.
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 export function cx(...classes: (string | false | null | undefined)[]) {
@@ -7,25 +5,17 @@ export function cx(...classes: (string | false | null | undefined)[]) {
 }
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'glass' | 'primary';
-  size?: 'sm' | 'md';
-  /** Круглая кнопка только с иконкой (нужен aria-label или title) */
+  variant?: 'secondary' | 'primary' | 'danger';
   iconOnly?: boolean;
 };
 
-// Полные имена классов: Tailwind не находит собранные из шаблона строки
-const BUTTON_SIZES = {
-  sm: { text: 'btn-sm', icon: 'btn-icon-sm' },
-  md: { text: 'btn-md', icon: 'btn-icon-md' },
-};
-
-export function Button({ variant = 'glass', size = 'md', iconOnly, className, type = 'button', ...props }: ButtonProps) {
+export function Button({ variant = 'secondary', iconOnly, className, type = 'button', ...props }: ButtonProps) {
   return (
     <button
       type={type}
       className={cx(
-        variant === 'primary' ? 'btn-primary' : 'btn-glass',
-        BUTTON_SIZES[size][iconOnly ? 'icon' : 'text'],
+        variant === 'primary' ? 'btn-primary' : variant === 'danger' ? 'btn-danger' : 'btn-secondary',
+        iconOnly && 'btn-icon',
         className,
       )}
       {...props}
@@ -40,20 +30,31 @@ type SectionHeaderProps = {
   className?: string;
 };
 
-// Заголовок секции/карточки: подпись слева, действия справа, одна высота (32px)
 export function SectionHeader({ title, icon, actions, className }: SectionHeaderProps) {
   return (
-    <header className={cx('mb-2 flex min-h-8 items-center justify-between gap-2', className)}>
-      <span className="label inline-flex items-center gap-1.5">
+    <header className={cx('mb-3 flex min-h-9 items-center justify-between gap-3 pl-2', className)}>
+      <h2 className="inline-flex min-w-0 items-center gap-2 text-base font-semibold leading-snug text-fg">
         {icon}
         {title}
-      </span>
+      </h2>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </header>
   );
 }
 
-// Подпись + элемент управления (для форм)
+type SectionProps = SectionHeaderProps & {
+  children: ReactNode;
+};
+
+export function Section({ title, icon, actions, className, children }: SectionProps) {
+  return (
+    <section className={cx('card', className)}>
+      <SectionHeader title={title} icon={icon} actions={actions} />
+      {children}
+    </section>
+  );
+}
+
 export function FormField({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-2">
@@ -70,7 +71,6 @@ type ToggleProps = {
   onChange: (checked: boolean) => void;
 };
 
-// iOS-переключатель
 export function Toggle({ label, description, checked, onChange }: ToggleProps) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-4">

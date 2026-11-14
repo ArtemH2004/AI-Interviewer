@@ -1,5 +1,3 @@
-// Запись звука с микрофона и/или текущей вкладки (звонок в Meet, Zoom и т.п.)
-
 export type AudioSource = 'mic' | 'tab' | 'both';
 
 export class RecorderError extends Error {
@@ -36,12 +34,9 @@ function getTabStreamId(tabId: number): Promise<string> {
 
 type TabCapture = {
   stream: MediaStream;
-  // tabCapture глушит звук вкладки — его нужно вернуть в динамики самим
   needsPlayback: boolean;
 };
 
-// Основной путь: chrome.tabCapture для активной вкладки, без лишних диалогов.
-// Работает, если панель открыта кликом по иконке на этой вкладке (activeTab).
 async function captureActiveTab(): Promise<TabCapture> {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab?.id === undefined) throw new Error('Не найдена активная вкладка');
@@ -52,7 +47,6 @@ async function captureActiveTab(): Promise<TabCapture> {
   return { stream, needsPlayback: true };
 }
 
-// Запасной путь: системный диалог выбора вкладки с галочкой «Поделиться звуком»
 async function pickTabWithAudio(): Promise<TabCapture> {
   let stream: MediaStream;
   try {
@@ -73,7 +67,6 @@ async function pickTabWithAudio(): Promise<TabCapture> {
     stream.getTracks().forEach((t) => t.stop());
     throw new RecorderError('В диалоге не включён звук. Выберите вкладку и отметьте «Поделиться звуком вкладки».', 'tab');
   }
-  // Видео не нужно — записываем только звук
   stream.getVideoTracks().forEach((t) => t.stop());
   return { stream, needsPlayback: false };
 }
@@ -107,7 +100,6 @@ export class AudioRecorder {
     const tabStream = tab?.stream;
     this.streams = [micStream, tabStream].filter((s): s is MediaStream => !!s);
 
-    // Смешиваем источники в один поток и параллельно меряем громкость
     const context = new AudioContext();
     const destination = context.createMediaStreamDestination();
     const analyser = context.createAnalyser();

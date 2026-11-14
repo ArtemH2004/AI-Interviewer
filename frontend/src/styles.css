@@ -1,291 +1,231 @@
 @import "tailwindcss";
 
-/* ───────────────────────── Дизайн-токены ─────────────────────────
-   Шкала отступов: 2 (8px) подпись → контент · 3 (12px) блоки внутри карточки
-   · 4 (16px) поля карточки и промежутки между секциями · 5 (20px) лист настроек */
+/* Shared scale: 8/12/16/24px spacing, 36px controls, 14px body. */
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter",
-    "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-
-  /* Типографика (по мотивам iOS) */
-  --text-title: 26px;
-  --text-title--line-height: 1.15;
-  --text-title--letter-spacing: -0.02em;
-  --text-headline: 20px;
-  --text-headline--line-height: 1.25;
+  --font-sans: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  --text-title: 18px;
+  --text-title--line-height: 1.5;
+  --text-headline: 18px;
+  --text-headline--line-height: 1.5;
   --text-body: 14px;
-  --text-body--line-height: 1.55;
-  --text-callout: 13px;
-  --text-callout--line-height: 1.4;
+  --text-body--line-height: 1.6;
+  --text-callout: 14px;
+  --text-callout--line-height: 1.5;
   --text-footnote: 12px;
-  --text-footnote--line-height: 1.35;
-  --text-caption: 11px;
-  --text-caption--line-height: 1.35;
-
-  /* Радиусы */
-  --radius-field: 16px;
-  --radius-card: 24px;
-  --radius-sheet: 32px;
-
-  /* Системные цвета */
-  --color-ios-blue: #0a84ff;
-  --color-ios-red: #ff3b30;
-  --color-ios-green: #34c759;
-  --color-ios-orange: #ff9500;
-
-  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
-
-  --animate-pulse-ring: pulse-ring 1.6s ease-out infinite;
+  --text-footnote--line-height: 1.5;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.5;
+  --radius-field: 24px;
+  --radius-card: 32px;
+  --radius-sheet: 36px;
 }
 
-/* Семантические цвета: ссылаются на переменные темы ниже */
 @theme inline {
   --color-fg: var(--text);
   --color-fg-muted: var(--text-muted);
   --color-field: var(--field);
-  --color-hairline: var(--glass-border);
+  --color-hairline: var(--border);
   --color-hover: var(--hover);
   --color-scrim: var(--scrim);
-  --color-thumb: var(--thumb);
 }
-
-/* Тема задаётся атрибутом data-theme на <html> (см. lib/theme.ts) */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   color-scheme: light;
-  --bg: #eef1f8;
-  --text: #0b0b0f;
-  --text-muted: rgb(60 60 67 / 0.62);
-  --field: rgb(255 255 255 / 0.5);
-  --hover: rgb(255 255 255 / 0.3);
-  --scrim: rgb(0 0 0 / 0.25);
-  --glass-fill: linear-gradient(140deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.28));
-  --glass-thick-fill: linear-gradient(160deg, rgb(255 255 255 / 0.9), rgb(246 247 251 / 0.82));
-  --glass-border: rgb(255 255 255 / 0.7);
-  --glass-edge: rgb(255 255 255 / 0.95);
-  --glass-tint: rgb(255 255 255 / 0.18);
-  --glass-shadow: 0 10px 34px -10px rgb(40 50 110 / 0.28), 0 2px 6px rgb(40 50 110 / 0.06);
-  --thumb: rgb(255 255 255 / 0.85);
-  --thumb-shadow: 0 3px 10px rgb(0 0 0 / 0.12), inset 0 1px 0 white;
-  --blob-1: #7aa7ff;
-  --blob-2: #ff9ad5;
-  --blob-3: #8ef0d0;
+  --bg: #ffffff;
+  --surface: #f7f7f7;
+  --text: #262626;
+  --text-muted: #6b6b6b;
+  --field: #ffffff;
+  --border: #dedede;
+  --hover: #ebebeb;
+  --scrim: rgb(0 0 0 / 0.35);
+  --primary: #262626;
+  --on-primary: #ffffff;
+  --danger: #c73636;
+  --danger-border: #e6b9b9;
+  --danger-hover: #fceaea;
+  --status-ready: #16804c;
+  --status-error: #c73636;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #06070c;
-  --text: #f5f5f7;
-  --text-muted: rgb(235 235 245 / 0.6);
-  --field: rgb(0 0 0 / 0.22);
-  --hover: rgb(255 255 255 / 0.08);
-  --scrim: rgb(0 0 0 / 0.45);
-  --glass-fill: linear-gradient(140deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.04));
-  --glass-thick-fill: linear-gradient(160deg, rgb(44 44 52 / 0.88), rgb(24 24 30 / 0.86));
-  --glass-border: rgb(255 255 255 / 0.16);
-  --glass-edge: rgb(255 255 255 / 0.32);
-  --glass-tint: rgb(255 255 255 / 0.04);
-  --glass-shadow: 0 12px 40px -12px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.3);
-  --thumb: rgb(255 255 255 / 0.2);
-  --thumb-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
-  --blob-1: #2d5bff;
-  --blob-2: #b5179e;
-  --blob-3: #0f9b8e;
+  --bg: #212121;
+  --surface: #2b2b2b;
+  --text: #ececec;
+  --text-muted: #ababab;
+  --field: #303030;
+  --border: #444444;
+  --hover: #3b3b3b;
+  --scrim: rgb(0 0 0 / 0.55);
+  --primary: #ececec;
+  --on-primary: #212121;
+  --danger: #ff8d8d;
+  --danger-border: #704747;
+  --danger-hover: #493030;
+  --status-ready: #68c994;
+  --status-error: #ff8d8d;
 }
 
-html,
-body,
-#root {
-  min-height: 100%;
-}
-
+html, body, #root { min-height: 100%; }
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 220ms ease, color 220ms ease;
 }
-
-/* ───────────────────────── Поверхности ───────────────────────── */
-
-/* Liquid glass: размытие + насыщенность + блик по краю */
-@utility glass {
-  position: relative;
-  isolation: isolate;
-  background: var(--glass-fill);
-  backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid var(--glass-border);
-  box-shadow:
-    inset 0 1px 0 var(--glass-edge),
-    inset 0 -1px 1px var(--glass-tint),
-    inset 0 0 18px var(--glass-tint),
-    var(--glass-shadow);
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    pointer-events: none;
-    background:
-      radial-gradient(120% 60% at 0% 0%, rgb(255 255 255 / 0.35), transparent 55%),
-      radial-gradient(80% 40% at 100% 100%, rgb(255 255 255 / 0.12), transparent 60%);
-    mix-blend-mode: overlay;
-  }
-}
-
-/* Плотное стекло для листов поверх контента: фон не должен мешать чтению */
-@utility glass-thick {
-  @apply glass;
-  background: var(--glass-thick-fill);
-  backdrop-filter: blur(40px) saturate(180%);
+button, input, textarea { font: inherit; }
+button:not(:disabled) { cursor: pointer; }
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 3px;
 }
 
 @utility card {
-  @apply glass rounded-card p-4;
+  @apply rounded-card border border-hairline p-4;
+  background: var(--surface);
 }
-
 @utility chip {
-  @apply glass inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-caption font-medium;
+  @apply inline-flex min-h-6 items-center gap-2 text-caption text-fg-muted;
 }
-
-/* ───────────────────────── Элементы управления ───────────────────────── */
-
-/* Общая реакция на нажатие и неактивное состояние */
-@utility pressable {
-  @apply transition-transform duration-300 ease-spring active:scale-95
-    disabled:opacity-45 disabled:active:scale-100;
-}
-
 @utility btn {
-  @apply pressable inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full font-semibold;
+  @apply inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-body font-medium disabled:cursor-not-allowed disabled:opacity-40;
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, opacity 200ms ease, transform 160ms ease, box-shadow 200ms ease;
+  &:active:not(:disabled) { transform: scale(0.97); }
 }
-@utility btn-glass {
-  @apply btn glass;
+@utility btn-secondary {
+  @apply btn border border-hairline bg-transparent text-fg hover:bg-hover;
 }
 @utility btn-primary {
-  @apply btn bg-ios-blue text-white;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.45),
-    inset 0 -2px 6px rgb(0 0 0 / 0.12),
-    0 8px 20px -8px color-mix(in srgb, var(--color-ios-blue) 80%, transparent);
+  @apply btn;
+  background: var(--primary);
+  color: var(--on-primary);
+  &:hover:not(:disabled) { opacity: 0.85; }
 }
-/* Размеры: sm — 32px, md — 36px; иконки внутри всегда size-4 */
-@utility btn-sm {
-  @apply h-8 px-3.5 text-footnote;
+@utility btn-danger {
+  @apply btn border;
+  color: var(--danger);
+  border-color: var(--danger-border);
+  background: transparent;
+  &:hover:not(:disabled) { background: var(--danger-hover); }
 }
-@utility btn-md {
-  @apply h-9 px-4 text-callout;
-}
-@utility btn-icon-sm {
-  @apply size-8;
-}
-@utility btn-icon-md {
-  @apply size-9;
-}
-
+@utility btn-md { @apply h-9 px-3 text-body; }
+@utility btn-icon { @apply size-9 p-0; }
 @utility field {
-  @apply w-full rounded-field border border-hairline bg-field px-3.5 py-2.5 text-body text-fg
-    outline-none transition placeholder:text-fg-muted focus:ring-2 focus:ring-ios-blue/50;
+  @apply w-full rounded-field border border-hairline bg-field px-4 py-3 text-body text-fg outline-none placeholder:text-fg-muted;
+  transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, box-shadow 220ms ease;
+  &:focus { border-color: var(--text-muted); box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-muted) 14%, transparent); }
 }
-
-/* ───────────────────────── Текст ───────────────────────── */
-
-@utility label {
-  @apply text-footnote font-medium tracking-wide text-fg-muted uppercase;
-}
-
-@utility hint {
-  @apply text-caption text-fg-muted;
-}
+@utility label { @apply text-body font-medium text-fg; }
+@utility hint { @apply text-caption text-fg-muted; }
 
 @layer components {
-  /* Цветной «обой» под стеклом — без него эффект не читается */
-  .wallpaper {
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    overflow: hidden;
-    pointer-events: none;
+  .model-status { margin-top: 4px; }
+  .model-status-indicators { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .model-indicator, .model-status-message {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: var(--text-caption);
+    line-height: 1.5;
   }
-  .wallpaper span {
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(60px);
-    opacity: 0.55;
-    animation: drift 18s ease-in-out infinite alternate;
+  .model-status-message { margin-top: 4px; }
+  .model-dot { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; }
+  .model-dot-ready { background: var(--status-ready); }
+  .model-dot-error { background: var(--status-error); }
+  .model-status-detail { margin-top: 4px; color: var(--text-muted); font-size: var(--text-caption); line-height: 1.5; }
+  .segments {
+    @apply grid gap-1 rounded-full border border-hairline p-1;
+    background: var(--surface);
   }
-  .wallpaper span:nth-child(1) {
-    width: 300px; height: 300px; top: -80px; left: -90px; background: var(--blob-1);
+  .segment {
+    @apply flex h-9 min-w-0 items-center justify-center gap-2 rounded-full px-2 text-body font-medium text-fg-muted hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40;
+    transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease, transform 160ms ease, opacity 200ms ease;
   }
-  .wallpaper span:nth-child(2) {
-    width: 260px; height: 260px; top: 38%; right: -110px; background: var(--blob-2);
-    animation-duration: 22s;
+  .segment:active:not(:disabled) { transform: scale(0.97); }
+  .segment[aria-pressed="true"] {
+    color: var(--text);
+    background: var(--field);
+    box-shadow: 0 0 0 1px var(--border);
   }
-  .wallpaper span:nth-child(3) {
-    width: 280px; height: 280px; bottom: -100px; left: 10%; background: var(--blob-3);
-    animation-duration: 26s;
-  }
-
-  /* iOS-переключатель: идёт сразу после скрытого <input type="checkbox"> */
   .switch {
     position: relative;
     flex-shrink: 0;
-    width: 51px;
-    height: 31px;
+    width: 36px;
+    height: 22px;
     border-radius: 9999px;
-    border: 1px solid var(--glass-border);
-    background: var(--field);
-    transition: background-color 0.3s var(--ease-spring);
+    background: var(--border);
+    transition: background-color 220ms ease;
   }
   .switch::after {
     content: "";
     position: absolute;
-    top: 1px;
-    left: 1px;
-    width: 27px;
-    height: 27px;
-    border-radius: 9999px;
-    background: white;
-    box-shadow: 0 3px 8px rgb(0 0 0 / 0.15);
-    transition: transform 0.3s var(--ease-spring);
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--field);
+    transition: transform 220ms ease, background-color 220ms ease;
   }
-  :checked + .switch {
-    border-color: transparent;
-    background: var(--color-ios-green);
+  :checked + .switch { background: var(--text-muted); }
+  :checked + .switch::after { transform: translateX(14px); }
+  :focus-visible + .switch { outline: 2px solid var(--text-muted); outline-offset: 3px; }
+  .settings-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    visibility: hidden;
+    pointer-events: none;
+    transition: visibility 0s linear 250ms;
   }
-  :checked + .switch::after {
-    transform: translateX(20px);
+  .settings-overlay[data-open="true"] {
+    visibility: visible;
+    pointer-events: auto;
+    transition-delay: 0s;
   }
-  :focus-visible + .switch {
-    outline: 2px solid color-mix(in srgb, var(--color-ios-blue) 50%, transparent);
-    outline-offset: 2px;
+  .settings-backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--scrim);
+    opacity: 0;
+    transition: opacity 250ms ease;
   }
-
-  /* Markdown в ответе Qwen */
-  .markdown { @apply text-body; }
+  .settings-sheet {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    max-width: 576px;
+    max-height: calc(100dvh - 32px);
+    margin-inline: auto;
+    overflow-y: auto;
+    border-radius: var(--radius-sheet);
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 250ms ease, transform 250ms ease, background-color 220ms ease, border-color 220ms ease;
+  }
+  .settings-overlay[data-open="true"] .settings-backdrop { opacity: 1; }
+  .settings-overlay[data-open="true"] .settings-sheet { opacity: 1; transform: translateY(0); }
+  .markdown { @apply text-body wrap-break-word; }
   .markdown > * + * { @apply mt-3; }
   .markdown :is(h1, h2, h3, h4) { @apply text-body font-semibold; }
   .markdown ul { @apply list-disc pl-5; }
   .markdown ol { @apply list-decimal pl-5; }
   .markdown li + li { @apply mt-1; }
   .markdown strong { @apply font-semibold; }
-  .markdown code { @apply rounded-md bg-field px-1 py-0.5 font-mono text-footnote; }
-  .markdown pre { @apply overflow-x-auto rounded-field bg-field p-3 text-footnote; }
+  .markdown code { @apply rounded bg-hover px-1 py-0.5 font-mono text-footnote; }
+  .markdown pre { @apply overflow-x-auto rounded-field border border-hairline bg-field p-3 text-footnote; }
   .markdown pre code { @apply bg-transparent p-0; }
-}
-
-@keyframes drift {
-  to { transform: translate(40px, 30px) scale(1.15); }
-}
-
-@keyframes pulse-ring {
-  from { transform: scale(1); opacity: 0.5; }
-  to { transform: scale(1.6); opacity: 0; }
+  .markdown a { @apply underline underline-offset-2; }
+  .markdown blockquote { @apply border-l-2 border-hairline pl-3 text-fg-muted; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wallpaper span { animation: none; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }

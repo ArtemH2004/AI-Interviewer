@@ -35,7 +35,7 @@ Run these commands from the repository root. Use Python 3.11, matching the Docke
    ```bash
    curl http://localhost:8000/api/generate-answer \
      -H 'Content-Type: application/json' \
-     -d '{"text":"What is the difference between a list and a tuple in Python?","context":"Junior Python developer preparing for an interview.","language":"en"}'
+     -d '{"text":"What is the difference between a list and a tuple in Python?","language":"en"}'
    ```
 
    Response: `{"success":true,"answer":"...","model":"qwen3:1.7b"}`. Actual wording depends on the model.
@@ -95,7 +95,7 @@ Restart the backend after changing configuration. Local configuration reads proc
 
 ## What changed and why
 
-- `backend/models/qwen_service.py`: adds an asynchronous HTTP client for Ollama `/api/chat`. This uses the existing project's local Ollama approach without API keys or sending questions to a hosted provider. `stream: false` produces one JSON answer compatible with the popup. `think: false` requests direct answers rather than thinking output. The prompt asks for concise spoken answers, respects the requested language and context, and instructs Qwen not to invent personal experience. Prompt instructions cannot guarantee factual accuracy; review generated answers.
+- `backend/models/qwen_service.py`: adds an asynchronous HTTP client for Ollama `/api/chat`. This uses the existing project's local Ollama approach without API keys or sending questions to a hosted provider. `stream: false` produces one JSON answer compatible with the popup. `think: false` requests direct answers rather than thinking output. The prompt asks for concise spoken answers, respects the requested language, and instructs Qwen not to invent personal experience. Prompt instructions cannot guarantee factual accuracy; review generated answers.
 - `backend/models/config.py`: adds independent Ollama/Qwen settings so answer model size and timeout can change without touching transcription.
 - `backend/api/server.py`: implements the previously unimplemented `/api/generate-answer`; rejects blank questions and bounds input sizes. It maps connection/missing-model errors to 503, timeouts to 504 and invalid/upstream failures to 502. `/api/health` adds Qwen availability while preserving the existing Whisper field. The top-level `healthy` value still indicates the API is running; inspect individual model statuses.
 - `backend/requirements.txt`: adds `httpx` for nonblocking calls to Ollama, avoiding synchronous generation inside an async API route.

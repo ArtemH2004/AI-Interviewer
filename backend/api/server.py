@@ -49,7 +49,6 @@ app.add_middleware(
 
 class QuestionRequest(BaseModel):
     text: str = Field(min_length=1, max_length=20000)
-    context: str = Field(default="", max_length=20000)
     language: str = Field(default="ru", min_length=2, max_length=16, pattern=r"^[a-zA-Z-]+$")
 
     @field_validator("text")
@@ -88,7 +87,7 @@ async def transcribe_audio(audio: UploadFile = File(...)):
 async def generate_answer(request: QuestionRequest):
     """Generate an interview answer using Qwen; audio stays with Whisper."""
     try:
-        return await qwen_service.generate_answer(request.text, request.context, request.language)
+        return await qwen_service.generate_answer(request.text, request.language)
     except QwenServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

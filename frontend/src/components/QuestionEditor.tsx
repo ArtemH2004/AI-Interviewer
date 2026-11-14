@@ -1,5 +1,5 @@
 import { ArrowUp } from 'lucide-react';
-import { Button, SectionHeader } from './ui';
+import { Button, Section } from './ui';
 
 type Props = {
   title: string;
@@ -11,9 +11,8 @@ type Props = {
   autoFocus?: boolean;
 };
 
-const MAX_LENGTH = 20000; // как в backend (QuestionRequest.text)
+const MAX_LENGTH = 20000; 
 
-// Enter — отправить, Ctrl + Enter (и Shift + Enter) — перенос строки
 function handleEnter(e: React.KeyboardEvent<HTMLTextAreaElement>, onChange: (v: string) => void, submit: () => void) {
   if (e.key !== 'Enter' || e.nativeEvent.isComposing || e.shiftKey || e.altKey) return;
   e.preventDefault();
@@ -27,16 +26,16 @@ function handleEnter(e: React.KeyboardEvent<HTMLTextAreaElement>, onChange: (v: 
   submit();
 }
 
-// Карточка с вопросом: и для ручного ввода, и для правки распознанного текста
 export function QuestionEditor({ title, value, onChange, onSubmit, disabled, placeholder, autoFocus }: Props) {
   const canSubmit = !disabled && value.trim().length > 0;
   const submit = () => canSubmit && onSubmit();
 
   return (
-    <section className="card">
-      <SectionHeader title={title} />
+    <Section title={title}>
       <textarea
         autoFocus={autoFocus}
+        aria-label={title}
+        disabled={disabled}
         className="field min-h-28 resize-y"
         value={value}
         maxLength={MAX_LENGTH}
@@ -44,12 +43,12 @@ export function QuestionEditor({ title, value, onChange, onSubmit, disabled, pla
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => handleEnter(e, onChange, submit)}
       />
-      <footer className="mt-3 flex items-center justify-between gap-3">
-        <span className="hint">Enter — отправить · Ctrl + Enter — новая строка</span>
+      <footer className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <span className="hint">Enter - отправить · Shift + Enter - перенос</span>
         <Button variant="primary" disabled={!canSubmit} onClick={submit}>
           Ответить <ArrowUp className="size-4" strokeWidth={2.5} />
         </Button>
       </footer>
-    </section>
+    </Section>
   );
 }

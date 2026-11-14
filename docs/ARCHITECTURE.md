@@ -40,7 +40,7 @@
 
 ### 1. Chrome Extension
 
-**Side Panel UI** (React + Vite + Tailwind, `frontend/src/sidepanel/`)
+**Side Panel UI** (React + Vite + Tailwind, `frontend/src/App.tsx, frontend/src/components/`)
 - Боковая панель вместо popup: не закрывается при потере фокуса и не обрывает запись
 - Режим «Голос»: запись с микрофона, вкладки со звонком или обоих источников (MediaRecorder, WebM/Opus)
 - Режим «Текст»: вопрос вводится вручную и сразу уходит в Qwen
@@ -49,7 +49,7 @@
 **Permission page** (`src/permission/`)
 - Боковая панель не показывает запрос доступа к микрофону, поэтому он запрашивается в отдельной вкладке один раз
 
-**Background Service Worker** (`src/background/`)
+**Background Service Worker** (`src/extension/background.ts`)
 - Открывает боковую панель по клику на иконку
 
 ### 2. Backend Server
@@ -83,7 +83,7 @@
 
 3. **Генерация ответа**
    - Текст вопроса отправляется на `/api/generate-answer`
-   - LLM генерирует ответ с учетом контекста
+   - LLM генерирует ответ на вопрос
    - Ответ отображается в боковой панели
 
 4. **Отображение**

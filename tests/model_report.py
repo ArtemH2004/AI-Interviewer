@@ -18,8 +18,6 @@ AUDIO_FILES = ["test_audio.wav"]
 QUESTIONS = [
     {"text": "Чем список отличается от кортежа в Python?", "language": "ru"},
     {"text": "Что такое индекс в базе данных и когда он замедляет работу?", "language": "ru"},
-    {"text": "Расскажите о своём опыте работы с базами данных.", "language": "ru",
-     "context": "Python-разработчик, 2 года опыта, Django и PostgreSQL."},
     {"text": "What is the difference between a process and a thread?", "language": "en"},
     {"text": "Explain REST API in simple terms.", "language": "en"},
 ]
@@ -42,8 +40,6 @@ def main():
             response = client.post("/api/generate-answer", json=question)
             response.raise_for_status()
             lines += ["", f"## Запрос: {question['text']}", ""]
-            if question.get("context"):
-                lines += [f"Контекст: _{question['context']}_", ""]
             lines += ["**Ответ:**", "", response.json()["answer"]]
         (RESULTS_DIR / "qwen.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
