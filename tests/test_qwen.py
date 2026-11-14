@@ -31,12 +31,11 @@ class QwenTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(payload['stream'])
             self.assertFalse(payload['think'])
             self.assertIn('en', payload['messages'][0]['content'])
-            self.assertIn('Python developer', payload['messages'][1]['content'])
             self.assertIn('What is a generator?', payload['messages'][1]['content'])
             return httpx.Response(200, json={'message': {'content': ' A generator yields values. '}})
 
         with patch('httpx.AsyncClient', client_factory(handler)):
-            result = await QwenService().generate_answer('What is a generator?', 'Python developer', 'en')
+            result = await QwenService().generate_answer('What is a generator?', 'en')
         self.assertEqual(result['answer'], 'A generator yields values.')
 
     async def test_failures(self):
@@ -48,7 +47,7 @@ class QwenTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(status=response.status_code):
                 with patch('httpx.AsyncClient', client_factory(lambda request: response)):
                     with self.assertRaises(QwenServiceError) as caught:
-                        await QwenService().generate_answer('Question', '', 'ru')
+                        await QwenService().generate_answer('Question', 'ru')
                 self.assertEqual(caught.exception.status_code, expected)
 
     async def test_network_failures(self):
@@ -57,7 +56,7 @@ class QwenTests(unittest.IsolatedAsyncioTestCase):
                 raise error
             with patch('httpx.AsyncClient', client_factory(handler)):
                 with self.assertRaises(QwenServiceError) as caught:
-                    await QwenService().generate_answer('Question', '', 'ru')
+                    await QwenService().generate_answer('Question', 'ru')
             self.assertEqual(caught.exception.status_code, expected)
 
     async def test_health(self):
@@ -82,9 +81,17 @@ class ApiTests(unittest.TestCase):
             response = self.client.post('/api/generate-answer', json={'text': ' Question '})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()['answer'], 'Answer')
-            generate.assert_awaited_once_with('Question', '', 'ru')
+            generate.assert_awaited_once_with('Question', 'ru')
         with patch.object(server.qwen_service, 'generate_answer', AsyncMock(side_effect=server.QwenServiceError(503, 'Ollama unavailable'))):
             self.assertEqual(self.client.post('/api/generate-answer', json={'text': 'Q'}).status_code, 503)
+
+    def test_legacy_context_is_not_used(self):
+        from unittest.mock import AsyncMock
+        self.assertNotIn('context', server.QuestionRequest.model_json_schema()['properties'])
+        with patch.object(server.qwen_service, 'generate_answer', AsyncMock(return_value={'answer': 'Answer'})) as generate:
+            response = self.client.post('/api/generate-answer', json={'text': 'Q', 'context': 'private details'})
+        self.assertEqual(response.status_code, 200)
+        generate.assert_awaited_once_with('Q', 'ru')
 
     def test_transcription_still_uses_whisper(self):
         from unittest.mock import Mock

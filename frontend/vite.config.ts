@@ -15,9 +15,9 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        sidepanel: path('./src/sidepanel/index.html'),
+        app: path('./src/index.html'),
         permission: path('./src/permission/index.html'),
-        background: path('./src/background/background.ts'),
+        background: path('./src/extension/background.ts'),
       },
       output: {
         // manifest.json ссылается на фиксированное имя service worker

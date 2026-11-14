@@ -15,7 +15,6 @@ export function applyTheme(theme: Theme) {
   render();
 }
 
-// Для страниц без React: берём тему из сохранённых настроек
 export async function applyStoredTheme() {
   const { settings } = await chrome.storage.local.get('settings');
   applyTheme((settings as { theme?: Theme } | undefined)?.theme ?? 'light');

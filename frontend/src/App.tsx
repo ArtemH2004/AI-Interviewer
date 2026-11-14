@@ -1,23 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AudioLines, Keyboard, Mic, MonitorSpeaker, Settings2, TriangleAlert, Waves } from 'lucide-react';
-import { generateAnswer, getHealth, transcribe, type Health } from '../lib/api';
-import { AudioRecorder, RecorderError, type AudioSource } from '../lib/recorder';
-import { applyTheme } from '../lib/theme';
-import { DEFAULT_SETTINGS, HISTORY_LIMIT, useStoredState, type HistoryItem, type Settings } from '../lib/storage';
-import { AnswerCard } from './components/AnswerCard';
+import { generateAnswer, transcribe } from './services/api';
+import { AudioRecorder, RecorderError, type AudioSource } from './services/recorder';
+import { applyTheme } from './services/theme';
+import { DEFAULT_SETTINGS, HISTORY_LIMIT, useStoredState, type HistoryItem, type Settings } from './services/storage';
+import { Answer } from './components/Answer';
 import { HistoryList } from './components/HistoryList';
+import { ModelStatus } from './components/ModelStatus';
 import { QuestionEditor } from './components/QuestionEditor';
 import { RecordButton } from './components/RecordButton';
 import { SegmentedControl } from './components/SegmentedControl';
-import { SettingsSheet } from './components/SettingsSheet';
-import { StatusPill } from './components/StatusPill';
+import { SettingsDialog } from './components/SettingsDialog';
 import { Button, cx } from './components/ui';
 
 type Mode = 'voice' | 'text';
 type Phase = 'idle' | 'recording' | 'transcribing' | 'answering';
 type ErrorState = { message: string; micPermission?: boolean };
-
-const HEALTH_INTERVAL_MS = 15000;
 
 function formatTime(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
@@ -30,17 +28,15 @@ function resolveLanguage(setting: Settings['language'], text: string, detected?:
 
 const SOURCE_HINTS: Record<AudioSource, string> = {
   mic: 'Записывается звук с микрофона: ваш голос или то, что звучит из колонок рядом.',
-  tab: 'Записывается звук текущей вкладки браузера — голос интервьюера в Meet, Zoom, Teams. Ваш микрофон не пишется.',
+  tab: 'Записывается звук текущей вкладки браузера - голос интервьюера в Meet, Zoom, Teams. Ваш микрофон не пишется.',
   both: 'Микрофон и звук вкладки сводятся в одну запись: слышно и вас, и интервьюера.',
 };
 
 export function App() {
-  const [settings, setSettings] = useStoredState<Settings>('settings', DEFAULT_SETTINGS);
+  const [settings, setSettings, settingsLoaded] = useStoredState<Settings>('settings', DEFAULT_SETTINGS);
   const [history, setHistory] = useStoredState<HistoryItem[]>('history', []);
   const [mode, setMode] = useStoredState<Mode>('mode', 'voice');
 
-  const [health, setHealth] = useState<Health | null>(null);
-  const [offline, setOffline] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
   const [level, setLevel] = useState(0);
   const [elapsed, setElapsed] = useState(0);
@@ -56,22 +52,6 @@ export function App() {
   const busy = phase !== 'idle';
 
   const updateSettings = (patch: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...patch }));
-
-  // Статус backend: Whisper и Qwen
-  const refreshHealth = useCallback(async () => {
-    try {
-      setHealth(await getHealth(settings.apiBase));
-      setOffline(false);
-    } catch {
-      setOffline(true);
-    }
-  }, [settings.apiBase]);
-
-  useEffect(() => {
-    void refreshHealth();
-    const id = setInterval(refreshHealth, HEALTH_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [refreshHealth]);
 
   useEffect(() => {
     if (phase !== 'recording') return;
@@ -93,7 +73,7 @@ export function App() {
     setError(null);
     setAnswer('');
     try {
-      const result = await generateAnswer(settings.apiBase, question, settings.context, language);
+      const result = await generateAnswer(settings.apiBase, question, language);
       setAnswer(result.answer);
       setHistory((prev) =>
         [{ id: crypto.randomUUID(), question, answer: result.answer, at: Date.now() }, ...prev].slice(0, HISTORY_LIMIT),
@@ -155,13 +135,13 @@ export function App() {
   }[phase];
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 px-4 pt-5 pb-8">
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex flex-col items-start gap-2">
-          <h1 className="text-title font-bold">AI-Interviewer</h1>
-          <StatusPill health={health} offline={offline} />
+    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-4">
+      <header className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-title font-semibold">AI-Interviewer</h1>
+          {settingsLoaded && <ModelStatus apiBase={settings.apiBase} />}
         </div>
-        <Button size="sm" iconOnly onClick={() => setSettingsOpen(true)} aria-label="Настройки">
+        <Button iconOnly onClick={() => setSettingsOpen(true)} aria-label="Настройки">
           <Settings2 className="size-4" />
         </Button>
       </header>
@@ -185,19 +165,19 @@ export function App() {
               level={level}
               onClick={phase === 'recording' ? stopRecording : startRecording}
             />
-            <p className={cx('text-callout font-medium tabular-nums', phase === 'recording' ? 'text-ios-red' : 'text-fg-muted')}>
+            <p className={cx('text-callout font-medium tabular-nums', phase === 'recording' ? 'text-fg' : 'text-fg-muted')}>
               {recordingHint}
             </p>
             <div className="flex w-full flex-col gap-2">
               <SegmentedControl<AudioSource>
-                size="sm"
+               
                 value={settings.source}
                 onChange={(source) => updateSettings({ source })}
                 disabled={busy}
                 options={[
-                  { value: 'mic', label: 'Микрофон', icon: <Mic className="size-3.5" /> },
-                  { value: 'tab', label: 'Вкладка', icon: <MonitorSpeaker className="size-3.5" /> },
-                  { value: 'both', label: 'Оба', icon: <Waves className="size-3.5" /> },
+                  { value: 'mic', label: 'Микрофон', icon: <Mic className="size-4" /> },
+                  { value: 'tab', label: 'Вкладка', icon: <MonitorSpeaker className="size-4" /> },
+                  { value: 'both', label: 'Оба', icon: <Waves className="size-4" /> },
                 ]}
               />
               <p className="hint px-2 text-center">{SOURCE_HINTS[settings.source]}</p>
@@ -228,13 +208,13 @@ export function App() {
 
       {error && (
         <section className="card flex items-start gap-3" role="alert">
-          <TriangleAlert className="size-4 shrink-0 translate-y-0.5 text-ios-orange" />
+          <TriangleAlert className="size-4 shrink-0 translate-y-0.5 text-fg-muted" />
           <div className="flex flex-1 flex-col items-start gap-3 text-callout">
             <p>{error.message}</p>
             {error.micPermission && (
               <Button
                 variant="primary"
-                size="sm"
+               
                 onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL('permission/index.html') })}
               >
                 Выдать доступ
@@ -245,7 +225,7 @@ export function App() {
       )}
 
       {(phase === 'answering' || answer) && (
-        <AnswerCard
+        <Answer
           answer={answer}
           loading={phase === 'answering'}
           onRegenerate={() => asked && ask(asked.text, asked.language)}
@@ -266,7 +246,7 @@ export function App() {
         onClear={() => setHistory([])}
       />
 
-      <SettingsSheet
+      <SettingsDialog
         open={settingsOpen}
         settings={settings}
         onChange={updateSettings}

@@ -1,7 +1,7 @@
 // Боковая панель не умеет показывать запрос разрешения на микрофон,
 // поэтому запрашиваем его в обычной вкладке: разрешение выдаётся всему расширению.
 import '../styles.css';
-import { applyStoredTheme } from '../lib/theme';
+import { applyStoredTheme } from '../services/theme';
 
 void applyStoredTheme();
 

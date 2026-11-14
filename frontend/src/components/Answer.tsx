@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import { Check, Copy, RotateCw, Sparkles } from 'lucide-react';
-import { Button, SectionHeader } from './ui';
+import { Button, Section } from './ui';
 
 type Props = {
   answer: string;
@@ -11,7 +11,7 @@ type Props = {
 
 const SKELETON_WIDTHS = [92, 100, 78, 60];
 
-export function AnswerCard({ answer, loading, onRegenerate }: Props) {
+export function Answer({ answer, loading, onRegenerate }: Props) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -21,24 +21,23 @@ export function AnswerCard({ answer, loading, onRegenerate }: Props) {
   };
 
   return (
-    <section className="card">
-      <SectionHeader
+    <Section
         title="Ответ"
-        icon={<Sparkles className="size-3.5 text-ios-blue" />}
+        icon={<Sparkles className="size-4 text-fg-muted" />}
         actions={
           answer &&
           !loading && (
             <>
-              <Button size="sm" iconOnly onClick={onRegenerate} title="Сгенерировать заново" aria-label="Сгенерировать заново">
+              <Button iconOnly onClick={onRegenerate} title="Сгенерировать заново" aria-label="Сгенерировать заново">
                 <RotateCw className="size-4" />
               </Button>
-              <Button size="sm" iconOnly onClick={copy} title="Копировать" aria-label="Копировать">
-                {copied ? <Check className="size-4 text-ios-green" /> : <Copy className="size-4" />}
+              <Button iconOnly onClick={copy} title="Копировать" aria-label="Копировать">
+                {copied ? <Check className="size-4 text-fg" /> : <Copy className="size-4" />}
               </Button>
             </>
           )
         }
-      />
+      >
       {loading ? (
         <div className="flex flex-col gap-2 py-1" aria-label="Генерация ответа">
           {SKELETON_WIDTHS.map((w) => (
@@ -50,6 +49,6 @@ export function AnswerCard({ answer, loading, onRegenerate }: Props) {
           <Markdown>{answer}</Markdown>
         </div>
       )}
-    </section>
+    </Section>
   );
 }

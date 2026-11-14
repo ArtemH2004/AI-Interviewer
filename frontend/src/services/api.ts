@@ -1,5 +1,3 @@
-// Клиент для backend API (backend/api/server.py)
-
 export type Health = {
   status: string;
   models: {
@@ -43,8 +41,8 @@ async function request<T>(base: string, path: string, init?: RequestInit): Promi
   return data as T;
 }
 
-export function getHealth(base: string) {
-  return request<Health>(base, '/api/health');
+export function getHealth(base: string, signal?: AbortSignal) {
+  return request<Health>(base, '/api/health', { signal });
 }
 
 export function transcribe(base: string, audio: Blob) {
@@ -53,10 +51,10 @@ export function transcribe(base: string, audio: Blob) {
   return request<TranscribeResult>(base, '/api/transcribe', { method: 'POST', body });
 }
 
-export function generateAnswer(base: string, text: string, context: string, language: string) {
+export function generateAnswer(base: string, text: string, language: string) {
   return request<AnswerResult>(base, '/api/generate-answer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, context, language }),
+    body: JSON.stringify({ text, language }),
   });
 }
