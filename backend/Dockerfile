@@ -1,23 +1,19 @@
-FROM python:3.11-slim
+ARG PYTHON_IMAGE
+FROM ${PYTHON_IMAGE}
 
 
 # Рабочая директория
 WORKDIR /app
 
 # Копируем requirements
-COPY requirements.txt .
+COPY requirements.txt /tmp/requirements.txt
 
 # Устанавливаем Python зависимости
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Копируем код приложения
-COPY . .
+COPY . /app/backend
 
 # Открываем порт
-EXPOSE 8000
-
-# Настройки моделей задаются в docker-compose.yml (дефолты — в models/config.py)
-ENV PYTHONUNBUFFERED=1
-
 # Команда запуска
-CMD ["python", "api/server.py"]
+CMD ["sh", "-c", "exec uvicorn backend.api.server:app --host \"$API_HOST\" --port \"$API_PORT\""]
