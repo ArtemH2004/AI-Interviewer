@@ -28,19 +28,16 @@
 
 ### Запуск
 
-```bash
-# Windows
-scripts\docker-setup.bat
+В Windows запустите скрипт из корня проекта и выберите Docker (1):
 
-# Linux/Mac
-chmod +x scripts/docker-setup.sh
-./scripts/docker-setup.sh
+```bat
+setup.bat
 ```
 
 Или вручную:
 
 ```bash
-# Собрать и запустить
+# Создать .env из .env.example, если его ещё нет, затем собрать и запустить
 docker compose up --build -d
 
 # Статус
@@ -84,24 +81,27 @@ docker compose exec backend bash  # зайти внутрь контейнера
 ## Вариант 2: Локальная установка (без Docker)
 
 ```bash
-cd backend
-pip install -r requirements.txt
-python api/server.py
+cp .env.example .env # если файла ещё нет
+pip install -r backend/requirements.txt
+python -m uvicorn backend.api.server:app --host 127.0.0.1 --port 8000
 ```
 
-Сервер запустится на `http://localhost:8000` (адрес и порт берутся из `backend/models/config.py`, см. [Конфигурация](#конфигурация)).
+Команды выполняются из корня проекта. Сервер запустится на `http://localhost:8000`; адрес и порт локального запуска задаются аргументами Uvicorn.
 
 ## Конфигурация
 
-Настройки читаются из переменных окружения (`backend/models/config.py`, `os.getenv`), с дефолтами на случай локального запуска без Docker:
+Настройки читаются из `.env` и переменных окружения (`backend/models/config.py`); создайте `.env` из `.env.example`. Значения процесса имеют приоритет при локальном запуске:
 
 | Переменная            | Дефолт    | Значения                           |
 |------------------------|-----------|-------------------------------------|
 | `WHISPER_MODEL`         | `base`    | `tiny`, `base`, `small`, `medium`, `large-v3` |
 | `WHISPER_DEVICE`        | `cpu`     | `cpu`, `cuda` (только NVIDIA), `auto` |
 | `WHISPER_COMPUTE_TYPE`  | `int8`    | `int8`, `float16` (cuda), `float32` |
-| `API_HOST`              | `0.0.0.0` | —                                    |
-| `API_PORT`              | `8000`    | —                                    |
+| `API_HOST`              | `0.0.0.0` | Адрес запуска в Docker; при локальном запуске задаётся через `--host` |
+| `API_PORT`              | `8000`    | Порт запуска в Docker; при локальном запуске задаётся через `--port` |
+| `MAX_AUDIO_BYTES`       | `10485760` | Максимальный размер файла в байтах; больший файл получает HTTP 413 |
+
+Ограничение проверяется после разбора multipart-запроса FastAPI и ограничивает чтение файла в обработчике; для ограничения всего HTTP-запроса до разбора нужен дополнительный лимит на уровне сервера или прокси. Длительность аудио отдельно не ограничена.
 
 Для Docker их удобно задавать в файле `.env` в корне проекта (Compose подставляет их в `docker-compose.yml`):
 
@@ -182,15 +182,11 @@ curl -X POST http://localhost:8000/api/transcribe \
 {
   "success": true,
   "text": "Транскрибированный текст",
-  "language": "ru",
-  "language_probability": 0.98,
-  "segments": [
-    {"start": 0.0, "end": 2.4, "text": "...", "avg_logprob": -0.12}
-  ]
+  "language": "ru"
 }
 ```
 
-`avg_logprob` — средняя лог-вероятность токенов сегмента (≤ 0, чем ближе к 0, тем увереннее модель), а не процент уверенности. Пустой файл → `400`.
+Пустой файл → `400`, превышение лимита размера → `413`.
 
 ### POST /api/generate-answer
 Генерация ответа через Qwen — см. [QWEN_SETUP.md](QWEN_SETUP.md).
@@ -198,11 +194,10 @@ curl -X POST http://localhost:8000/api/transcribe \
 ## Тестирование
 
 ```bash
-pip install requests
 python tests/test_whisper.py
 ```
 
-Скрипт проверяет `/api/health` и (если есть `tests/test_audio.wav`) отправляет файл на `/api/transcribe`.
+Скрипт проверяет `/api/health` и отправляет `tests/test_audio.wav` на `/api/transcribe`. Для отчётов по всем трём моделям выполните `python tests/model_report.py`: результаты сохраняются в `tests/results/`.
 
 ## Volumes
 

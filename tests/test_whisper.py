@@ -1,84 +1,34 @@
-"""
-Тест Whisper API в Docker контейнере
-"""
-import requests
-import json
+"""Live Whisper checks against the running backend."""
+import unittest
 from pathlib import Path
 
-API_URL = "http://localhost:8000"
+import httpx
+from test_qwen import API_URL
+
+AUDIO_FILES = [Path(__file__).parent / 'test_audio.wav']
 
 
-def test_health():
-    """Проверка health endpoint"""
-    print("🔍 Проверка health endpoint...")
-    try:
-        response = requests.get(f"{API_URL}/api/health", timeout=5)
-        response.raise_for_status()
-        data = response.json()
-        print(f"✅ Health check passed: {json.dumps(data, indent=2, ensure_ascii=False)}")
-        return data.get("models", {}).get("whisper") == "loaded"
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Health check failed: {e}")
-        return False
+class WhisperIntegrationTests(unittest.TestCase):
+    def test_transcription(self):
+        self.report_lines = []
+        with httpx.Client(base_url=API_URL, timeout=300) as client:
+            health = client.get('/api/health')
+            health.raise_for_status()
+            self.assertEqual(health.json()['models']['whisper'], 'loaded')
+            self.report_lines += [f"Модель: `{health.json()['whisper_model']}`", '']
+            for audio in AUDIO_FILES:
+                with self.subTest(audio=audio.name):
+                    with audio.open('rb') as sample:
+                        response = client.post('/api/transcribe', files={'audio': (audio.name, sample, 'audio/wav')})
+                    response.raise_for_status()
+                    data = response.json()
+                    self.report_lines += [f'## Аудио: `{audio.name}`', '',
+                                          f"Язык: {data.get('language')}", '',
+                                          f"> {data.get('text', '')}", '']
+                    self.assertTrue(data.get('success'), data)
+                    self.assertIsInstance(data.get('text'), str)
+                    self.assertTrue(data['text'].strip(), 'Whisper returned an empty transcription')
 
 
-def test_transcribe_with_sample():
-    """Тест транскрипции с тестовым аудио файлом"""
-    print("\n🎤 Тест транскрипции...")
-
-    # Путь к тестовому аудио файлу
-    test_audio = Path(__file__).parent / "test_audio.wav"
-
-    if not test_audio.exists():
-        print(f"⚠️  Тестовый аудио файл не найден: {test_audio}")
-        print("   Положите файл test_audio.wav в папку tests/ для полного теста")
-        return False
-
-    try:
-        with open(test_audio, "rb") as f:
-            # Поле формы должно называться "audio" — см. backend/api/server.py
-            files = {"audio": ("test_audio.wav", f, "audio/wav")}
-            response = requests.post(
-                f"{API_URL}/api/transcribe",
-                files=files,
-                timeout=60
-            )
-
-        response.raise_for_status()
-        data = response.json()
-
-        print(f"✅ Транскрипция успешна!")
-        print(f"   Текст: {data.get('text', 'N/A')}")
-        print(f"   Язык: {data.get('language', 'N/A')} (p={data.get('language_probability', 'N/A')})")
-        print(f"   Сегментов: {len(data.get('segments', []))}")
-        return True
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Ошибка транскрипции: {e}")
-        if hasattr(e, 'response') and e.response is not None:
-            print(f"   Response: {e.response.text}")
-        return False
-
-
-def main():
-    print("=" * 60)
-    print("🐳 Тестирование Whisper в Docker")
-    print("=" * 60)
-
-    # Проверка health
-    if not test_health():
-        print("\n❌ API недоступен или модель не загружена. Убедитесь что Docker контейнер запущен:")
-        print("   docker compose up -d")
-        print("   docker compose logs -f backend")
-        return
-
-    # Тест транскрипции
-    test_transcribe_with_sample()
-
-    print("\n" + "=" * 60)
-    print("✅ Тестирование завершено")
-    print("=" * 60)
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

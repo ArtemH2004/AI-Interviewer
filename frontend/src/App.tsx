@@ -28,8 +28,8 @@ function resolveLanguage(setting: Settings['language'], text: string, detected?:
 
 const SOURCE_HINTS: Record<AudioSource, string> = {
   mic: 'Записывается звук с микрофона: ваш голос или то, что звучит из колонок рядом.',
-  tab: 'Записывается звук текущей вкладки браузера - голос интервьюера в Meet, Zoom, Teams. Ваш микрофон не пишется.',
-  both: 'Микрофон и звук вкладки сводятся в одну запись: слышно и вас, и интервьюера.',
+  tab: 'Выберите вкладку со звонком и включите передачу звука. Ваш микрофон не записывается.',
+  both: 'Выберите вкладку со звонком и включите передачу звука. Запись также включает микрофон.',
 };
 
 export function App() {
@@ -73,7 +73,7 @@ export function App() {
     setError(null);
     setAnswer('');
     try {
-      const result = await generateAnswer(settings.apiBase, question, language);
+      const result = await generateAnswer(settings.apiBase, question, language, settings.context);
       setAnswer(result.answer);
       setHistory((prev) =>
         [{ id: crypto.randomUUID(), question, answer: result.answer, at: Date.now() }, ...prev].slice(0, HISTORY_LIMIT),
